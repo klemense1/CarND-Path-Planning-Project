@@ -244,6 +244,27 @@ vector<double> JMT(vector< double> start, vector <double> end, double T)
   
 }
 
+void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_s)
+{
+  vector<double> frenet_sd;
+  frenet_sd = getFrenet(car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y);
+  
+  double dist_inc = 0.5;
+  for(int i = 0; i < 50; i++)
+  {
+    double s = frenet_sd[0] + dist_inc*i;
+    double d = 2+4;
+    
+    vector<double> global_xy;
+    global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    
+    next_x_vals.push_back(global_xy[0]);
+    next_y_vals.push_back(global_xy[1]);
+  }
+}
+
+
+
 int main() {
   uWS::Hub h;
   
@@ -327,28 +348,38 @@ int main() {
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
+          //planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_s);
+          
+          double dist_inc = 0.5;
           
           vector<double> frenet_sd;
           frenet_sd = getFrenet(car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y);
           
-          double dist_inc = 0.5;
+          vector< double> start;
+          
+          start = {car_s, car_speed, 0};
+          vector <double> end;
+          end = {car_s+5, 5, 0};
+          vector<double> poly;
+          poly = JMT(start, end, 1);
+          
           for(int i = 0; i < 50; i++)
           {
-            double s = frenet_sd[0] + dist_inc*i;
-            double d = 2+4;
+            float t = 0.02*i;
+            float s = poly[0] + poly[1] * t + poly[2] * pow(t,2) + poly[3] * pow(t,3) + poly[4] * pow(t,4) + poly[5] * pow(t,5);
+            float d = 2+4;
             
             vector<double> global_xy;
             global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-
+            
             next_x_vals.push_back(global_xy[0]);
             next_y_vals.push_back(global_xy[1]);
-            //next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
-            //next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
+            
           }
           
           std::cout << "current x = " << car_x << ", y = " << car_y << std::endl;
           std::cout << "next x = " << next_x_vals[0] << ", y = " << next_y_vals[0] << std::endl;
-          
+          std::cout << "car_s = " << car_s << ", frenet_sd[0] = " << frenet_sd[0] << std::endl;
           
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
