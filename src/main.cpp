@@ -11,6 +11,7 @@
 
 #include "Eigen-3.3/Eigen/Dense"
 #include "spline.h"
+#include <numeric>      // std::adjacent_difference
 
 using namespace std;
 
@@ -162,6 +163,37 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
   
 }
 
+vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
+{
+  
+  vector<double> maps_dx(maps_x.size());
+  vector<double> maps_dy(maps_y.size());
+  
+  adjacent_difference(maps_x.begin(), maps_x.end(), maps_dx.begin());
+  adjacent_difference(maps_y.begin(), maps_y.end(), maps_dy.begin());
+  
+  tk::spline spline_x;
+  spline_x.set_points(maps_s, maps_x);
+  
+  tk::spline spline_y;
+  spline_y.set_points(maps_s, maps_y);
+  
+  tk::spline spline_dx;
+  spline_dx.set_points(maps_s, maps_dx);
+  
+  tk::spline spline_dy;
+  spline_dy.set_points(maps_s, maps_dy);
+  
+  double heading = atan2(spline_dy(s),spline_dx(s));
+  double perp_heading = heading-pi()/2;
+  
+  double x = spline_x(s) + d*cos(perp_heading);
+  double y = spline_y(s) + d*sin(perp_heading);
+  
+  return {x,y};
+  
+}
+
 vector<double> JMT(vector< double> start, vector <double> end, double T)
 {
   /*
@@ -306,7 +338,7 @@ int main() {
             double d = 2+4;
             
             vector<double> global_xy;
-            global_xy = getXY(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
             next_x_vals.push_back(global_xy[0]);
             next_y_vals.push_back(global_xy[1]);
