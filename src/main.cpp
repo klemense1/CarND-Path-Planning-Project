@@ -163,9 +163,10 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
   
 }
 
+
 vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
-  
+  // todo: only fit spline using a couple of waypoints
   vector<double> maps_dx(maps_x.size());
   vector<double> maps_dy(maps_y.size());
   
@@ -178,13 +179,7 @@ vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<dou
   tk::spline spline_y;
   spline_y.set_points(maps_s, maps_y);
   
-  tk::spline spline_dx;
-  spline_dx.set_points(maps_s, maps_dx);
-  
-  tk::spline spline_dy;
-  spline_dy.set_points(maps_s, maps_dy);
-  
-  double heading = atan2(spline_dy(s),spline_dx(s));
+  double heading = atan2(spline_y.deriv(1,s),spline_x.deriv(1,s));
   double perp_heading = heading-pi()/2;
   
   double x = spline_x(s) + d*cos(perp_heading);
@@ -263,6 +258,12 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
   }
 }
 
+void print(const vector<double> &path) {
+  for (int i=0; i<path.size(); i++) {
+    std::cout << path[i] << ", ";
+  }
+  std::cout << std::endl;
+}
 
 
 int main() {
@@ -348,20 +349,22 @@ int main() {
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
-          //planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_s);
+          planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_s);
           
           double dist_inc = 0.5;
           
           vector<double> frenet_sd;
           frenet_sd = getFrenet(car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y);
-          
+          /*
           vector< double> start;
-          
           start = {car_s, car_speed, 0};
+          
           vector <double> end;
-          end = {car_s+5, 5, 0};
+          end = {car_s+25, 25, 0};
+          
           vector<double> poly;
           poly = JMT(start, end, 1);
+          std::cout << "Coefficients: " << poly[0] << ", " << poly[1] << ", " << poly[2] << ", " << poly[3] << ", " << poly[4] << ", " << poly[5] << std::endl;
           
           for(int i = 0; i < 50; i++)
           {
@@ -377,10 +380,22 @@ int main() {
             
           }
           
+          std::cout << "previous_path_x: ";
+          print(previous_path_x);
+          
+          std::cout << "next_x_vals: ";
+          print(next_x_vals);
+          
+          std::cout << "previous_path_y: ";
+          print(previous_path_y);
+          
+          std::cout << "next_y_vals: ";
+          print(next_y_vals);
+          
           std::cout << "current x = " << car_x << ", y = " << car_y << std::endl;
           std::cout << "next x = " << next_x_vals[0] << ", y = " << next_y_vals[0] << std::endl;
           std::cout << "car_s = " << car_s << ", frenet_sd[0] = " << frenet_sd[0] << std::endl;
-          
+          */
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
           
