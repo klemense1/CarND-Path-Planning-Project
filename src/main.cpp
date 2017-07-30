@@ -89,6 +89,7 @@ int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
 vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
 {
+  
   int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
   
   int prev_wp;
@@ -135,34 +136,24 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
   
 }
 
-// Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
-{
-  int prev_wp = -1;
+void fitToDetailedCurve(const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y, vector<double> &maps_s2, vector<double> &maps_x2, vector<double> &maps_y2) {
   
-  while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-  {
-    prev_wp++;
+  double s_max = maps_s[maps_s.size()-1];
+  
+  tk::spline spline_x;
+  spline_x.set_points(maps_s, maps_x);
+  
+  tk::spline spline_y;
+  spline_y.set_points(maps_s, maps_y);
+  
+  for (int i=0; i<s_max*10; i++) {
+    double s = i*0.1;
+    maps_s2.push_back(s);
+    maps_x2.push_back(spline_x(s));
+    maps_y2.push_back(spline_y(s));
   }
   
-  int wp2 = (prev_wp+1)%maps_x.size();
-  
-  double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
-  // the x,y,s along the segment
-  double seg_s = (s-maps_s[prev_wp]);
-  
-  double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
-  double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
-  
-  double perp_heading = heading-pi()/2;
-  
-  double x = seg_x + d*cos(perp_heading);
-  double y = seg_y + d*sin(perp_heading);
-  
-  return {x,y};
-  
 }
-
 
 vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
@@ -173,46 +164,6 @@ vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<dou
   
   tk::spline spline_y;
   spline_y.set_points(maps_s, maps_y);
-  
-  double heading = atan2(spline_y.deriv(1,s),spline_x.deriv(1,s));
-  double perp_heading = heading-pi()/2;
-  
-  double x = spline_x(s) + d*cos(perp_heading);
-  double y = spline_y(s) + d*sin(perp_heading);
-  
-  return {x,y};
-  
-}
-
-vector<double> getXYspline2(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
-{
-  // todo: only fit spline using a couple of waypoints
-  
-  int prev_wp = -1;
-  
-  while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-  {
-    prev_wp++;
-  }
-  
-  int wp2 = (prev_wp+10)%maps_x.size();
-  
-  std::vector<double> maps_s_selected;
-  std::vector<double> maps_x_selected;
-  std::vector<double> maps_y_selected;
-
-  for (int i = prev_wp; i <= wp2; i++)
-  {
-    maps_s_selected.push_back(maps_s[i]);
-    maps_x_selected.push_back(maps_x[i]);
-    maps_y_selected.push_back(maps_y[i]);
-  }
-  
-  tk::spline spline_x;
-  spline_x.set_points(maps_s_selected, maps_x_selected);
-  
-  tk::spline spline_y;
-  spline_y.set_points(maps_s_selected, maps_y_selected);
   
   double heading = atan2(spline_y.deriv(1,s),spline_x.deriv(1,s));
   double perp_heading = heading-pi()/2;
@@ -336,46 +287,45 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
     // calculate angle
     pos_x = previous_path_x[keep_path_size-1];
     pos_y = previous_path_y[keep_path_size-1];
-    std::cout << "pos_x" << pos_x << "keep_path_size" << keep_path_size << std::endl;
     
     double pos_x2 = previous_path_x[keep_path_size-2];
     double pos_y2 = previous_path_y[keep_path_size-2];
     angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
   }
   
+  vector<double> map_waypoints_s2;
+  vector<double> map_waypoints_x2;
+  vector<double> map_waypoints_y2;
+  
+  fitToDetailedCurve(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_s2, map_waypoints_x2, map_waypoints_y2);
+  
   vector<double> frenet_sd;
-  frenet_sd = getFrenet(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
+  frenet_sd = getFrenet(pos_x, pos_y, angle, map_waypoints_x2, map_waypoints_y2);
   
   std::cout << "new" << std::endl;
+  
   for(int i = 0; i < 50-keep_path_size; i++)
   {
     
     double s = frenet_sd[0] + dist_inc*i;
     double d = 2+4;
     
-    vector<double> global_xy;
-    global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
     
-    vector<double> frenet_sd_new;
-    frenet_sd_new = getFrenet(global_xy[0], global_xy[1], angle, map_waypoints_x, map_waypoints_y);
-    
-    if (frenet_sd_new[0] >= frenet_sd[0]) // throw away this frame if it is too bad
-    {
-
     double pos_x2 = pos_x;
     double pos_y2 = pos_y;
     
     pos_x = global_xy[0];
     pos_y = global_xy[1];
 
-    angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+    //angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
 
     //std::cout << "angle: " << angle << std::endl;
     
     next_x_vals.push_back(pos_x+dist_inc*cos(angle));
     next_y_vals.push_back(pos_y+dist_inc*sin(angle));
+    
     std::cout << "i = " << keep_path_size + i << "next_x_vals: " << pos_x+dist_inc*cos(angle) << "next_y_vals: " << pos_y+dist_inc*sin(angle) << std::endl;
-    }
   }
 }
 
@@ -456,7 +406,7 @@ int main() {
           auto sensor_fusion = j[1]["sensor_fusion"];
           
           json msgJson;
-          
+        
           vector<double> next_x_vals;
           vector<double> next_y_vals;
           
@@ -470,8 +420,6 @@ int main() {
           
           double dist_inc = 0.5;
           
-          vector<double> frenet_sd;
-          frenet_sd = getFrenet(car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y);
           /*
           vector< double> start;
           start = {car_s, car_speed, 0};
