@@ -247,14 +247,67 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
   double dist_inc = 0.5;
   for(int i = 0; i < 50; i++)
   {
+    double s = frenet_sd[0] + dist_inc*(i+1);
+    double d = 2+4;
+    
+    vector<double> global_xy;
+    global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    
+    next_x_vals.push_back(global_xy[0] + cos(car_yaw));
+    next_y_vals.push_back(global_xy[1] + sin(car_yaw));
+  }
+}
+
+
+void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
+{
+  
+  double dist_inc = 0.5;
+  
+  double pos_x;
+  double pos_y;
+  double angle;
+  int prev_path_size = previous_path_x.size();
+  int keep_path_size = std::min(prev_path_size, 30);
+  
+  // reusing old path
+  for(int i = 0; i < keep_path_size; i++)
+  {
+    next_x_vals.push_back(previous_path_x[i]);
+    next_y_vals.push_back(previous_path_y[i]);
+  }
+  
+  if(keep_path_size == 0)
+  {
+    pos_x = car_x;
+    pos_y = car_y;
+    angle = deg2rad(car_yaw);
+  }
+  else
+  {
+    // calculate angle
+    pos_x = previous_path_x[keep_path_size-1];
+    pos_y = previous_path_y[keep_path_size-1];
+    
+    double pos_x2 = previous_path_x[keep_path_size-2];
+    double pos_y2 = previous_path_y[keep_path_size-2];
+    angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+  }
+  
+  vector<double> frenet_sd;
+  frenet_sd = getFrenet(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
+  
+  for(int i = 0; i < 50-keep_path_size; i++)
+  {
+    
     double s = frenet_sd[0] + dist_inc*i;
     double d = 2+4;
     
     vector<double> global_xy;
     global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
     
-    next_x_vals.push_back(global_xy[0]);
-    next_y_vals.push_back(global_xy[1]);
+    next_x_vals.push_back(global_xy[0]);//+cos(angle));
+    next_y_vals.push_back(global_xy[1]);//+sin(angle));
   }
 }
 
@@ -350,6 +403,7 @@ int main() {
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
           planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_s);
+          //, previous_path_x, previous_path_y);
           
           double dist_inc = 0.5;
           
