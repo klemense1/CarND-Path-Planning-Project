@@ -263,8 +263,9 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
   double pos_x;
   double pos_y;
   double angle;
+  
   int prev_path_size = previous_path_x.size();
-  int keep_path_size = std::min(prev_path_size, 10);
+  int keep_path_size = std::min(prev_path_size, 5);
 
   std::cout << "old" << std::endl;
 
