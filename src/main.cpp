@@ -136,7 +136,7 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
   
 }
 
-void fitToDetailedCurve(const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y, vector<double> &maps_s2, vector<double> &maps_x2, vector<double> &maps_y2) {
+void fitToDetailedCurve(const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y, const vector<double> &maps_dx, const vector<double> &maps_dy, vector<double> &maps_s2, vector<double> &maps_x2, vector<double> &maps_y2, vector<double> &maps_dx2, vector<double> &maps_dy2) {
   
   double s_max = maps_s[maps_s.size()-1];
   
@@ -146,11 +146,19 @@ void fitToDetailedCurve(const vector<double> &maps_s, const vector<double> &maps
   tk::spline spline_y;
   spline_y.set_points(maps_s, maps_y);
   
-  for (int i=0; i<s_max*10; i++) {
-    double s = i*0.1;
+  tk::spline spline_dx;
+  spline_dx.set_points(maps_s, maps_dx);
+  
+  tk::spline spline_dy;
+  spline_dy.set_points(maps_s, maps_dy);
+  
+  for (int i=0; i<s_max*1; i++) {
+    double s = i*1;
     maps_s2.push_back(s);
     maps_x2.push_back(spline_x(s));
     maps_y2.push_back(spline_y(s));
+    maps_dx2.push_back(spline_x(s));
+    maps_dy2.push_back(spline_y(s));
   }
   
 }
@@ -255,7 +263,7 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
 }
 
 
-void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
+void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
 {
 
   double dist_inc = 0.5;
@@ -297,8 +305,10 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
   vector<double> map_waypoints_s2;
   vector<double> map_waypoints_x2;
   vector<double> map_waypoints_y2;
+  vector<double> map_waypoints_dx2;
+  vector<double> map_waypoints_dy2;
   
-  fitToDetailedCurve(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_s2, map_waypoints_x2, map_waypoints_y2);
+  fitToDetailedCurve(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s2, map_waypoints_x2, map_waypoints_y2, map_waypoints_dx2, map_waypoints_dy2);
   
   vector<double> frenet_sd;
   frenet_sd = getFrenet(pos_x, pos_y, angle, map_waypoints_x2, map_waypoints_y2);
@@ -321,6 +331,83 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
 
     //angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
 
+    //std::cout << "angle: " << angle << std::endl;
+    
+    next_x_vals.push_back(pos_x+dist_inc*cos(angle));
+    next_y_vals.push_back(pos_y+dist_inc*sin(angle));
+    
+    std::cout << "i = " << keep_path_size + i << "next_x_vals: " << pos_x+dist_inc*cos(angle) << "next_y_vals: " << pos_y+dist_inc*sin(angle) << std::endl;
+  }
+}
+
+void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
+{
+  
+  double dist_inc = 0.5;
+  
+  double pos_x;
+  double pos_y;
+  double angle;
+  
+  int prev_path_size = previous_path_x.size();
+  int keep_path_size = std::min(prev_path_size, 5);
+  
+  std::cout << "old" << std::endl;
+  
+  // reusing old path
+  for(int i = 0; i < keep_path_size; i++)
+  {
+    next_x_vals.push_back(previous_path_x[i]);
+    next_y_vals.push_back(previous_path_y[i]);
+    std::cout << "i = " << i << "next_x_vals: " << next_x_vals[i] << "next_y_vals: " << next_y_vals[i] << std::endl;
+  }
+  
+  if(keep_path_size == 0)
+  {
+    pos_x = car_x;
+    pos_y = car_y;
+    angle = deg2rad(car_yaw);
+  }
+  else
+  {
+    // calculate angle
+    pos_x = previous_path_x[keep_path_size-1];
+    pos_y = previous_path_y[keep_path_size-1];
+    
+    double pos_x2 = previous_path_x[keep_path_size-2];
+    double pos_y2 = previous_path_y[keep_path_size-2];
+    angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+  }
+  
+  vector<double> map_waypoints_s2;
+  vector<double> map_waypoints_x2;
+  vector<double> map_waypoints_y2;
+  vector<double> map_waypoints_dx2;
+  vector<double> map_waypoints_dy2;
+  
+  fitToDetailedCurve(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s2, map_waypoints_x2, map_waypoints_y2, map_waypoints_dx2, map_waypoints_dy2);
+  
+  vector<double> frenet_sd;
+  frenet_sd = getFrenet(pos_x, pos_y, angle, map_waypoints_x2, map_waypoints_y2);
+  
+  std::cout << "new" << std::endl;
+  
+  for(int i = 0; i < 50-keep_path_size; i++)
+  {
+    
+    double s = frenet_sd[0] + dist_inc*i;
+    double d = 2+4;
+    
+    vector<double> global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    
+    double pos_x2 = pos_x;
+    double pos_y2 = pos_y;
+    
+    pos_x = global_xy[0];
+    pos_y = global_xy[1];
+    
+    //angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+    
     //std::cout << "angle: " << angle << std::endl;
     
     next_x_vals.push_back(pos_x+dist_inc*cos(angle));
@@ -412,29 +499,37 @@ int main() {
           vector<double> next_y_vals;
           
           std::cout << "new cycle" << std::endl;
-          std::cout << "previos path" << std::endl;
-          print(previous_path_x);
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
-          planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_s, previous_path_x, previous_path_y);
+          //planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
           
           double dist_inc = 0.5;
           
-          /*
-          vector< double> start;
-          start = {car_s, car_speed, 0};
+          vector<double> map_waypoints_s2;
+          vector<double> map_waypoints_x2;
+          vector<double> map_waypoints_y2;
+          vector<double> map_waypoints_dx2;
+          vector<double> map_waypoints_dy2;
           
-          vector <double> end;
-          end = {car_s+25, 25, 0};
+          fitToDetailedCurve(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s2, map_waypoints_x2, map_waypoints_y2, map_waypoints_dx2, map_waypoints_dy2);
+          
+          vector<double> frenet_sd;
+          frenet_sd = getFrenet(car_x, car_x, car_yaw, map_waypoints_x2, map_waypoints_y2);
+          
+          vector< double> start;
+          start = {car_s, 25, 0};
+          
+          vector <double> goal;
+          goal = {car_s+dist_inc*50, 25, 0};
           
           vector<double> poly;
-          poly = JMT(start, end, 1);
+          poly = JMT(start, goal, 1);
           std::cout << "Coefficients: " << poly[0] << ", " << poly[1] << ", " << poly[2] << ", " << poly[3] << ", " << poly[4] << ", " << poly[5] << std::endl;
           
           for(int i = 0; i < 50; i++)
           {
-            float t = 0.02*i;
+            float t = 0.02*(i+1);
             float s = poly[0] + poly[1] * t + poly[2] * pow(t,2) + poly[3] * pow(t,3) + poly[4] * pow(t,4) + poly[5] * pow(t,5);
             float d = 2+4;
             
@@ -445,6 +540,12 @@ int main() {
             next_y_vals.push_back(global_xy[1]);
             
           }
+          
+          std::cout << "start: ";
+          print(start);
+          
+          std::cout << "goal: ";
+          print(goal);
           
           std::cout << "previous_path_x: ";
           print(previous_path_x);
@@ -460,8 +561,8 @@ int main() {
           
           std::cout << "current x = " << car_x << ", y = " << car_y << std::endl;
           std::cout << "next x = " << next_x_vals[0] << ", y = " << next_y_vals[0] << std::endl;
-          std::cout << "car_s = " << car_s << ", frenet_sd[0] = " << frenet_sd[0] << std::endl;
-          */
+          //std::cout << "car_s = " << car_s << ", frenet_sd[0] = " << frenet_sd[0] << std::endl;
+          
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
           
