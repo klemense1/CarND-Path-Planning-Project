@@ -12,6 +12,9 @@
 #include "Eigen-3.3/Eigen/Dense"
 #include "spline.h"
 #include <numeric>      // std::adjacent_difference
+#include <chrono>
+
+std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
 
 using namespace std;
 
@@ -87,7 +90,7 @@ int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
+vector<double> getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y)
 {
   
   int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
@@ -136,6 +139,25 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
   
 }
 
+/*
+ from https://stackoverflow.com/questions/11734322/matlab-type-arrays-in-c
+ */
+vector<double> linspace(double a, double b, int n) {
+  vector<double> array;
+  if ((n == 0) || (n == 1) || (a == b))
+    array.push_back(b);
+  else if (n > 1) {
+    double step = (b - a) / (n - 1);
+    int count = 0;
+    while(count < n) {
+      array.push_back(a + count*step);
+      ++count;
+    }
+  }
+  return array;
+}
+
+
 void fitToDetailedCurve(const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y, const vector<double> &maps_dx, const vector<double> &maps_dy, vector<double> &maps_s2, vector<double> &maps_x2, vector<double> &maps_y2, vector<double> &maps_dx2, vector<double> &maps_dy2) {
   
   double s_max = maps_s[maps_s.size()-1];
@@ -165,6 +187,10 @@ void fitToDetailedCurve(const vector<double> &maps_s, const vector<double> &maps
 
 vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
+  /*
+  function returns x,y world coordinates for given spatial (frenet) coordinates and x(s) and y(s)
+   */
+  
   // todo: only fit spline using a couple of waypoints
   
   tk::spline spline_x;
@@ -183,7 +209,7 @@ vector<double> getXYspline(double s, double d, vector<double> maps_s, vector<dou
   
 }
 
-vector<double> JMT(vector< double> start, vector <double> end, double T)
+vector<double> JMT(const vector< double> start, const vector <double> end, double T)
 {
   /*
    Calculate the Jerk Minimizing Trajectory that connects the initial state
@@ -266,7 +292,7 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
 void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
 {
 
-  double dist_inc = 0.5;
+  double dist_inc = 0.44; // making roughly 50mph
   
   double pos_x;
   double pos_y;
@@ -343,7 +369,8 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
 void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
 {
   
-  double dist_inc = 0.5;
+  
+  double dist_inc = 0.44; // making roughly 50mph
   
   double pos_x;
   double pos_y;
@@ -418,6 +445,40 @@ void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &ne
 }
 
 
+void smooth_trajectory(const vector<double> x_points, const vector<double> y_points, vector<double> &x_new, vector<double> &y_new) {
+  /*
+    take planned segments and linearly space them to apply some smoothing
+  */
+  vector<double> s_points(x_points.size());
+  double angle = 0;
+  for (int i=0; i<50; i++) {
+    vector<double> frenet_sd;
+    frenet_sd = getFrenet(x_points[i], y_points[i], angle, x_points, y_points);
+    s_points[i] = frenet_sd[0];
+  }
+  
+  s_points[0] = 0; // this should not be necessary, there is a bug in the getFrenet function
+  
+  tk::spline spline_x;
+  spline_x.set_points(s_points, x_points);
+  
+  tk::spline spline_y;
+  spline_y.set_points(s_points, y_points);
+  
+  vector<double> s_points_linear_spaced;
+  s_points_linear_spaced = linspace(s_points[0], s_points[s_points.size()-1], 50);
+  
+  for (int i=0; i<50; i++) {
+    double s = s_points_linear_spaced[i];
+    x_new.push_back(spline_x(s));
+    y_new.push_back(spline_y(s));
+  }
+  
+  x_new[0] = x_points[0]; // reusing first point
+  y_new[0] = y_points[0];
+  
+}
+
 int main() {
   uWS::Hub h;
   
@@ -475,6 +536,12 @@ int main() {
         if (event == "telemetry") {
           // j[1] is the data JSON object
           
+          std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
+          double elapsed_secs = std::chrono::duration_cast<std::chrono::microseconds>(current_time - last_time).count() /1000000.0;
+          last_time = std::chrono::steady_clock::now();
+          
+          std::cout<<elapsed_secs<<std::endl;
+          
           // Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -498,12 +565,19 @@ int main() {
           vector<double> next_x_vals;
           vector<double> next_y_vals;
           
+          vector<double> next_x_vals_dummy;
+          vector<double> next_y_vals_dummy;
+          
           std::cout << "new cycle" << std::endl;
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
-          //planner_follow_waypoints(next_x_vals, next_y_vals, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
+          planner_follow_waypoints(next_x_vals_dummy, next_y_vals_dummy, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
           
+          smooth_trajectory(next_x_vals_dummy, next_y_vals_dummy,next_x_vals, next_y_vals);
+          //next_x_vals = next_x_vals_dummy;
+          //next_y_vals = next_y_vals_dummy;
+          /*
           double dist_inc = 0.5;
           
           vector<double> map_waypoints_s2;
@@ -518,13 +592,15 @@ int main() {
           frenet_sd = getFrenet(car_x, car_x, car_yaw, map_waypoints_x2, map_waypoints_y2);
           
           vector< double> start;
-          start = {car_s, 25, 0};
+          double speed_target = 22;
+          double time_prediction = 1;
+          start = {car_s+car_speed*0.02, speed_target, 0};
           
           vector <double> goal;
-          goal = {car_s+dist_inc*50, 25, 0};
+          goal = {car_s+speed_target*time_prediction+car_speed*0.02, speed_target, 0};
           
           vector<double> poly;
-          poly = JMT(start, goal, 1);
+          poly = JMT(start, goal, time_prediction);
           std::cout << "Coefficients: " << poly[0] << ", " << poly[1] << ", " << poly[2] << ", " << poly[3] << ", " << poly[4] << ", " << poly[5] << std::endl;
           
           for(int i = 0; i < 50; i++)
@@ -562,7 +638,7 @@ int main() {
           std::cout << "current x = " << car_x << ", y = " << car_y << std::endl;
           std::cout << "next x = " << next_x_vals[0] << ", y = " << next_y_vals[0] << std::endl;
           //std::cout << "car_s = " << car_s << ", frenet_sd[0] = " << frenet_sd[0] << std::endl;
-          
+          */
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
           
