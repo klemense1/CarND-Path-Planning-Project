@@ -572,24 +572,14 @@ int main() {
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
-          planner_follow_waypoints(next_x_vals_dummy, next_y_vals_dummy, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
+          //planner_follow_waypoints(next_x_vals_dummy, next_y_vals_dummy, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
           
-          smooth_trajectory(next_x_vals_dummy, next_y_vals_dummy,next_x_vals, next_y_vals);
+          //smooth_trajectory(next_x_vals_dummy, next_y_vals_dummy,next_x_vals, next_y_vals);
           //next_x_vals = next_x_vals_dummy;
           //next_y_vals = next_y_vals_dummy;
-          /*
+          
           double dist_inc = 0.5;
           
-          vector<double> map_waypoints_s2;
-          vector<double> map_waypoints_x2;
-          vector<double> map_waypoints_y2;
-          vector<double> map_waypoints_dx2;
-          vector<double> map_waypoints_dy2;
-          
-          fitToDetailedCurve(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s2, map_waypoints_x2, map_waypoints_y2, map_waypoints_dx2, map_waypoints_dy2);
-          
-          vector<double> frenet_sd;
-          frenet_sd = getFrenet(car_x, car_x, car_yaw, map_waypoints_x2, map_waypoints_y2);
           
           vector< double> start;
           double speed_target = 22;
@@ -638,7 +628,7 @@ int main() {
           std::cout << "current x = " << car_x << ", y = " << car_y << std::endl;
           std::cout << "next x = " << next_x_vals[0] << ", y = " << next_y_vals[0] << std::endl;
           //std::cout << "car_s = " << car_s << ", frenet_sd[0] = " << frenet_sd[0] << std::endl;
-          */
+          
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
           
