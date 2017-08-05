@@ -366,11 +366,41 @@ void planner_follow_waypoints(vector<double> &next_x_vals, vector<double> &next_
   }
 }
 
-void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
+void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_s, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s)
+{
+  
+  vector< double> start;
+  double speed_target = 22;
+  double time_prediction = 1;
+  start = {car_s+speed_target*0.02, speed_target, 0};
+  
+  vector <double> goal;
+  goal = {car_s+speed_target*time_prediction+speed_target*0.02, speed_target, 0};
+  
+  vector<double> poly;
+  poly = JMT(start, goal, time_prediction);
+  std::cout << "Coefficients: " << poly[0] << ", " << poly[1] << ", " << poly[2] << ", " << poly[3] << ", " << poly[4] << ", " << poly[5] << std::endl;
+  
+  for(int i = 0; i < 50; i++)
+  {
+    float t = 0.02*(i+1);
+    float s = poly[0] + poly[1] * t + poly[2] * pow(t,2) + poly[3] * pow(t,3) + poly[4] * pow(t,4) + poly[5] * pow(t,5);
+    float d = 2+4;
+    
+    vector<double> global_xy;
+    global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    
+    next_x_vals.push_back(global_xy[0]);
+    next_y_vals.push_back(global_xy[1]);
+    
+  }
+}
+
+void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_s, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s, const vector<double> previous_path_x, const vector<double> previous_path_y)
 {
   
   
-  double dist_inc = 0.44; // making roughly 50mph
+  double dist_inc = 0.40; // making roughly 50mph
   
   double pos_x;
   double pos_y;
@@ -419,26 +449,31 @@ void planner_quintic_polynomials(vector<double> &next_x_vals, vector<double> &ne
   
   std::cout << "new" << std::endl;
   
+  vector< double> start;
+  double speed_target = 22;
+  double time_prediction = 1;
+  
+  start = {frenet_sd[0]+speed_target*0.02, speed_target, 0};
+  
+  vector <double> goal;
+  goal = {frenet_sd[0]+speed_target*time_prediction+speed_target*0.02, speed_target, 0};
+  
+  vector<double> poly;
+  poly = JMT(start, goal, time_prediction);
+  std::cout << "Coefficients: " << poly[0] << ", " << poly[1] << ", " << poly[2] << ", " << poly[3] << ", " << poly[4] << ", " << poly[5] << std::endl;
+  
   for(int i = 0; i < 50-keep_path_size; i++)
   {
     
-    double s = frenet_sd[0] + dist_inc*i;
-    double d = 2+4;
+    float t = 0.02*(i+1);
+    float s = poly[0] + poly[1] * t + poly[2] * pow(t,2) + poly[3] * pow(t,3) + poly[4] * pow(t,4) + poly[5] * pow(t,5);
+    float d = 2+4;
     
-    vector<double> global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> global_xy;
+    global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
     
-    double pos_x2 = pos_x;
-    double pos_y2 = pos_y;
-    
-    pos_x = global_xy[0];
-    pos_y = global_xy[1];
-    
-    //angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
-    
-    //std::cout << "angle: " << angle << std::endl;
-    
-    next_x_vals.push_back(pos_x+dist_inc*cos(angle));
-    next_y_vals.push_back(pos_y+dist_inc*sin(angle));
+    next_x_vals.push_back(global_xy[0]);
+    next_y_vals.push_back(global_xy[1]);
     
     std::cout << "i = " << keep_path_size + i << "next_x_vals: " << pos_x+dist_inc*cos(angle) << "next_y_vals: " << pos_y+dist_inc*sin(angle) << std::endl;
   }
@@ -574,45 +609,16 @@ int main() {
           
           //planner_follow_waypoints(next_x_vals_dummy, next_y_vals_dummy, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
           
-          //smooth_trajectory(next_x_vals_dummy, next_y_vals_dummy,next_x_vals, next_y_vals);
-          //next_x_vals = next_x_vals_dummy;
-          //next_y_vals = next_y_vals_dummy;
+          planner_quintic_polynomials(next_x_vals_dummy, next_y_vals_dummy, car_s, car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s, previous_path_x, previous_path_y);
           
-          double dist_inc = 0.5;
-          
-          
-          vector< double> start;
-          double speed_target = 22;
-          double time_prediction = 1;
-          start = {car_s+car_speed*0.02, speed_target, 0};
-          
-          vector <double> goal;
-          goal = {car_s+speed_target*time_prediction+car_speed*0.02, speed_target, 0};
-          
-          vector<double> poly;
-          poly = JMT(start, goal, time_prediction);
-          std::cout << "Coefficients: " << poly[0] << ", " << poly[1] << ", " << poly[2] << ", " << poly[3] << ", " << poly[4] << ", " << poly[5] << std::endl;
-          
-          for(int i = 0; i < 50; i++)
-          {
-            float t = 0.02*(i+1);
-            float s = poly[0] + poly[1] * t + poly[2] * pow(t,2) + poly[3] * pow(t,3) + poly[4] * pow(t,4) + poly[5] * pow(t,5);
-            float d = 2+4;
-            
-            vector<double> global_xy;
-            global_xy = getXYspline(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            
-            next_x_vals.push_back(global_xy[0]);
-            next_y_vals.push_back(global_xy[1]);
-            
+          if (true) {
+          smooth_trajectory(next_x_vals_dummy, next_y_vals_dummy,next_x_vals, next_y_vals);
           }
-          
-          std::cout << "start: ";
-          print(start);
-          
-          std::cout << "goal: ";
-          print(goal);
-          
+          else {
+            next_x_vals = next_x_vals_dummy;
+            next_y_vals = next_y_vals_dummy;
+          }
+
           std::cout << "previous_path_x: ";
           print(previous_path_x);
           
