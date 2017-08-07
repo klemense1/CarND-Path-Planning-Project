@@ -11,6 +11,7 @@
 #include <vector>
 #include "Vehicle.h"
 #include <map>
+#include "json.hpp"
 
 using namespace std;
 
@@ -25,6 +26,7 @@ private:
   vector<double> map_waypoints_dx;
   vector<double> map_waypoints_dy;
   
+  map<int, Vehicle> vehicleMap;
   
 public:
 
@@ -45,7 +47,7 @@ public:
   vector<double> getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y);
   vector<double> getXYspline(double s, double d);
   vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
-  void setCarMapData(vector<double> sensorData);
+  void setCarMapData(const nlohmann::json j);
 };
 
 #endif /* Waypoints_h */

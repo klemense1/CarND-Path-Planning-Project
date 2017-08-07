@@ -42,16 +42,6 @@ string hasData(string s) {
   return "";
 }
 
-inline double euclidean(double dx, double dy) {
-  return sqrt(dx * dx + dy * dy);
-}
-
-inline vector<double> cartesian2polar(double vx, double vy) {
-  double speed = euclidean(vx, vy);
-  double theta = atan2(vy, vx);
-  if(theta < 0) theta += 2 * M_PI;
-  return {speed, theta};
-}
 
 void print(const vector<double> &path) {
   for (int i=0; i<path.size(); i++) {
@@ -146,22 +136,7 @@ int main() {
           double end_path_d = j[1]["end_path_d"];
           
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
-          auto sensor_fusion = j[1]["sensor_fusion"];
-          
-          map<int, Vehicle> vehicleMap;
-
-          for(auto sensorData : sensor_fusion) {
-            int idnbr = sensorData[0];
-            if(vehicleMap.find(idnbr) == vehicleMap.end()) {
-              vehicleMap[idnbr].id = 0;
-            }
-            
-            // Update other cars' states
-            vehicleMap[idnbr].setPosition(sensorData[5], sensorData[6]);
-            auto polar = cartesian2polar(sensorData[3], sensorData[4]);
-            auto other_sd_dot = world.getFrenetVelocity(vehicleMap[idnbr].state.s, vehicleMap[idnbr].state.d, polar[0], polar[1]);
-            vehicleMap[idnbr].setVelocity(other_sd_dot[0], other_sd_dot[1]);
-          }
+          world.setCarMapData(j);
           
           
           std::cout << "new cycle" << std::endl;

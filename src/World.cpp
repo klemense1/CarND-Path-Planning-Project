@@ -16,7 +16,6 @@
 #include <thread>
 #include <math.h>
 
-#include "json.hpp"
 #include "utilities.h"
 #include "spline.h"
 
@@ -52,6 +51,19 @@ World::World(string file_name) {
   
   
 }
+
+inline double euclidean(double dx, double dy) {
+  return sqrt(dx * dx + dy * dy);
+}
+
+inline vector<double> cartesian2polar(double vx, double vy) {
+  double speed = euclidean(vx, vy);
+  double theta = atan2(vy, vx);
+  if(theta < 0) theta += 2 * M_PI;
+  return {speed, theta};
+}
+
+
 double World::distance(const double x1, const double y1, const double x2, const double y2)
 {
   return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
@@ -290,4 +302,21 @@ vector<double> World::getFrenetVelocity(double s, double d, double speed, double
   double d_dot = speed * sin(diff);
   
   return {s_dot, d_dot};
+}
+
+void World::setCarMapData(const nlohmann::json j) {
+  auto sensor_fusion = j[1]["sensor_fusion"];
+  
+  for(auto sensorData : sensor_fusion) {
+    int idnbr = sensorData[0];
+    if(this->vehicleMap.find(idnbr) == this->vehicleMap.end()) {
+      this->vehicleMap[idnbr].id = 0;
+    }
+    
+    // Update other cars' states
+    this->vehicleMap[idnbr].setPosition(sensorData[5], sensorData[6]);
+    auto polar = cartesian2polar(sensorData[3], sensorData[4]);
+    auto other_sd_dot = getFrenetVelocity(this->vehicleMap[idnbr].state.s, this->vehicleMap[idnbr].state.d, polar[0], polar[1]);
+    this->vehicleMap[idnbr].setVelocity(other_sd_dot[0], other_sd_dot[1]);
+  }
 }
