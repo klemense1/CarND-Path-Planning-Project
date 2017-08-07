@@ -46,6 +46,7 @@ Waypoints::Waypoints(string file_name) {
     map_waypoints_s.push_back(s);
     map_waypoints_dx.push_back(d_x);
     map_waypoints_dy.push_back(d_y);
+    
   }
   
 }
@@ -198,6 +199,93 @@ vector<double> Waypoints::getXYspline(double s, double d)
   double y = spline_y(s) + d*sin(perp_heading);
   
   return {x,y};
+ 
+  /*
+  double max_s = 6000;
+  // Ensure s is [0, max_s]
+  // Use log2(N) operations for finding the last passed waypoint
+  const vector<double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);
+  long prev_wp = upper - map_waypoints_s.begin();
+  prev_wp -= 1;
+  
+  vector<double> nearest_s;
+  vector<double> nearest_x;
+  vector<double> nearest_y;
+  
+  for(int i = -3; i < 5; i++) {
+    size_t n = map_waypoints_s.size();
+    size_t wp = (n + prev_wp + i) % n;
+    nearest_x.push_back(map_waypoints_x[wp] + d * map_waypoints_dx[wp]);
+    nearest_y.push_back(map_waypoints_y[wp] + d * map_waypoints_dy[wp]);
+    // Correct for circuit coordinates
+    double temp_s = map_waypoints_s[wp];
+    if(prev_wp + i < 0) {
+      temp_s -= max_s;
+    } else if(prev_wp + i >= n) {
+      temp_s += max_s;
+    }
+    nearest_s.push_back(temp_s);
+  }
+  
+  // Get the curve from the nearest 6 waypoints
+  tk::spline curve_x;
+  tk::spline curve_y;
+  curve_x.set_points(nearest_s, nearest_x);
+  curve_y.set_points(nearest_s, nearest_y);
+  
+  double x = curve_x(s);
+  double y = curve_y(s);
+  
+  return {x, y};
+   */
   
 }
 
+
+vector<double> Waypoints::getFrenetVelocity(double s, double d, double speed, double theta) {
+  // Ensure s is [0, max_s]
+  // Use log2(N) operations for finding the last passed waypoint
+  double max_s = 5000;
+  const vector<double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);
+  long prev_wp = upper - map_waypoints_s.begin();
+  prev_wp -= 1;
+  
+  vector<double> nearest_s;
+  vector<double> nearest_x;
+  vector<double> nearest_y;
+  
+  for(int i = -3; i < 5; i++) {
+    size_t n = map_waypoints_s.size();
+    size_t wp = (n + prev_wp + i) % n;
+    nearest_x.push_back(map_waypoints_x[wp] + d * map_waypoints_dx[wp]);
+    nearest_y.push_back(map_waypoints_y[wp] + d * map_waypoints_dy[wp]);
+    // Correct for circuit coordinates
+    double temp_s = map_waypoints_s[wp];
+    if(prev_wp + i < 0) {
+      temp_s -= max_s;
+    } else if(prev_wp + i >= n) {
+      temp_s += max_s;
+    }
+    nearest_s.push_back(temp_s);
+  }
+  
+  // Get the curve from the nearest 6 waypoints
+  tk::spline curve_x;
+  tk::spline curve_y;
+  curve_x.set_points(nearest_s, nearest_x);
+  curve_y.set_points(nearest_s, nearest_y);
+  
+  double x = curve_x(s);
+  double y = curve_y(s);
+  double x2 = curve_x(s + 1);
+  double y2 = curve_y(s + 1);
+  
+  double road_angle = atan2(y2 - y, x2 - x);
+  if(road_angle < 0) road_angle += 2 * M_PI;
+  double diff = theta - road_angle;
+  
+  double s_dot = fabs(speed * cos(diff));
+  double d_dot = speed * sin(diff);
+  
+  return {s_dot, d_dot};
+}

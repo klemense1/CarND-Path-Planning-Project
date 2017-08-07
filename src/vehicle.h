@@ -10,18 +10,22 @@
 #define vehicle_h
 
 #include <vector>
+#include <sstream>
+#include "VehicleState.h"
+
 
 using namespace std;
 
 class Vehicle {
 public:
   
-  double s;
+  /*double s;
   double s_d;
   double s_dd;
   double d;
   double d_d;
-  double d_dd;
+  double d_dd;*/
+  VehicleState::state state;
   
   explicit Vehicle();
   
@@ -30,6 +34,10 @@ public:
   void setVelocity(double s_dot, double d_dot);
   
   void setPosition(double s, double d);
+  
+  friend std::ostream& operator<<(std::ostream& stream, const Vehicle& matrix);
+
+  VehicleState::state getVehicleState();
   
   virtual ~Vehicle();
 };

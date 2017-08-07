@@ -30,7 +30,7 @@ public:
   void FitWaypointsDetail(const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y, const vector<double> &maps_dx, const vector<double> &maps_dy, vector<double> &maps_s2, vector<double> &maps_x2, vector<double> &maps_y2, vector<double> &maps_dx2, vector<double> &maps_dy2);
   vector<double> getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y);
   vector<double> getXYspline(double s, double d);
-
+  vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
 };
 
 #endif /* Waypoints_h */

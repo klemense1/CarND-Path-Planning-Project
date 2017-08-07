@@ -13,6 +13,11 @@
 #include "TrajectoryPlanner.h"
 #include "Vehicle.h"
 #include "VehicleState.h"
+//#include "Parameters.h"
+
+constexpr double pi() { return M_PI; }
+double deg2rad(double x) { return x * pi() / 180; }
+double rad2deg(double x) { return x * 180 / pi(); }
 
 std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
 
@@ -49,50 +54,49 @@ void print(const vector<double> &path) {
 /*
  void smooth_trajectory(const vector<double> x_points, const vector<double> y_points, vector<double> &x_new, vector<double> &y_new) {
  
-  vector<double> s_points(x_points.size());
-  double angle = 0;
-  for (int i=0; i<50; i++) {
-    vector<double> frenet_sd;
-    frenet_sd = getFrenet(x_points[i], y_points[i], angle, x_points, y_points);
-    s_points[i] = frenet_sd[0];
-  }
-  
-  s_points[0] = 0; // this should not be necessary, there is a bug in the getFrenet function
-  
-  tk::spline spline_x;
-  spline_x.set_points(s_points, x_points);
-  
-  tk::spline spline_y;
-  spline_y.set_points(s_points, y_points);
-  
-  vector<double> s_points_linear_spaced;
-  s_points_linear_spaced = linspace(s_points[0], s_points[s_points.size()-1], 50);
-  
-  for (int i=0; i<50; i++) {
-    double s = s_points_linear_spaced[i];
-    x_new.push_back(spline_x(s));
-    y_new.push_back(spline_y(s));
-  }
-  
-  x_new[0] = x_points[0]; // reusing first point
-  y_new[0] = y_points[0];
-  
-}
-*/
+ vector<double> s_points(x_points.size());
+ double angle = 0;
+ for (int i=0; i<50; i++) {
+ vector<double> frenet_sd;
+ frenet_sd = getFrenet(x_points[i], y_points[i], angle, x_points, y_points);
+ s_points[i] = frenet_sd[0];
+ }
+ 
+ s_points[0] = 0; // this should not be necessary, there is a bug in the getFrenet function
+ 
+ tk::spline spline_x;
+ spline_x.set_points(s_points, x_points);
+ 
+ tk::spline spline_y;
+ spline_y.set_points(s_points, y_points);
+ 
+ vector<double> s_points_linear_spaced;
+ s_points_linear_spaced = linspace(s_points[0], s_points[s_points.size()-1], 50);
+ 
+ for (int i=0; i<50; i++) {
+ double s = s_points_linear_spaced[i];
+ x_new.push_back(spline_x(s));
+ y_new.push_back(spline_y(s));
+ }
+ 
+ x_new[0] = x_points[0]; // reusing first point
+ y_new[0] = y_points[0];
+ 
+ }
+ */
 int main() {
   uWS::Hub h;
   
   // Waypoint map to read from
   string map_file_ = "/Users/Klemens/Udacity_Nano_Car/CarND-Path-Planning-Project/data/highway_map.csv";
-
+  
   Waypoints waypoints(map_file_);
-  // The max s value before wrapping around the track back to 0
-  double max_s = 6945.554;
+  
   TrajectoryPlanner trajplanner;
   Vehicle egovehicle;
   
   h.onMessage([&waypoints, &trajplanner, &egovehicle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                                                                                                       uWS::OpCode opCode) {
+                                                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -141,36 +145,32 @@ int main() {
           
           const size_t n_progressed_points = trajplanner.getLastSentTrajectoryLength() - previous_path_x.size();
           
-          /*if(n_progressed_points > 0) {
+          if(n_progressed_points > 0) {
             const vector<vector<double>> trajectory = trajplanner.getLastSentTrajectory();
             // TODO move vehicle
-            
-          } else {*/
+            egovehicle.move(trajectory[0], trajectory[1], n_progressed_points);
+          } else {
             // If we don't have any historical data, we fallback to default values
-          const vector<double> &frenetVelocity = {22,0};//;world.getFrenetVelocity(j[1]["s"], j[1]["d"], mph2ms * ((double) j[1]["speed"]), deg2rad(j[1]["yaw"]));
-          egovehicle.setPosition(j[1]["s"], j[1]["d"]);
-          egovehicle.setVelocity(frenetVelocity[0], frenetVelocity[1]);
-          //}
+            const vector<double> &frenetVelocity = waypoints.getFrenetVelocity(j[1]["s"], j[1]["d"], 0.44704 * ((double) j[1]["speed"]), deg2rad(j[1]["yaw"]));
+            egovehicle.setPosition(j[1]["s"], j[1]["d"]);
+            egovehicle.setVelocity(frenetVelocity[0], frenetVelocity[1]);
+          }
           
           trajplanner.chopLastSentTrajectory(previous_path_x.size());
           
-          VehicleState::state start;
-          start.s = egovehicle.s;
-          start.s_d = egovehicle.s_d;
-          start.s_dd = egovehicle.s_dd;
-          start.d = egovehicle.d;
-          start.d_d = egovehicle.d_d;
-          start.d_dd = egovehicle.d_dd;
+          VehicleState::state start = egovehicle.getVehicleState();
           
           VehicleState::state goal;
-          goal.s = egovehicle.s + 22*0.02;
-          goal.s_d = 22;
+          goal.s = start.s + 22;//Parameters::velocity_max*Parameters::dt*Parameters::n_steps;
+          goal.s_d = 22;//Parameters::velocity_max;
           goal.s_dd = 0;
           goal.d = 6;
           goal.d_d = 0;
           goal.d_dd = 0;
           
           vector<vector<double>> path = trajplanner.createTrajectoryXY(start, goal, waypoints);
+          
+          cout<<egovehicle;
           
           json msgJson;
           msgJson["next_x"] = path[0];

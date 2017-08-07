@@ -15,35 +15,33 @@
 #include "VehicleState.h"
 #include "TrajectoryPlanner.h"
 #include "Waypoints.h"
-//#include "utilities.h"
+#include "Parameters.h"
 
 using namespace std;
 
   //void createTrajectory(vector<double> &next_x_vals, vector<double> &next_y_vals, const double car_s, const double car_x, const double car_y, const double car_yaw, const vector<double> map_waypoints_x, const vector<double> map_waypoints_y, const vector<double> map_waypoints_dx, const vector<double> map_waypoints_dy, const vector<double> map_waypoints_s)
 vector<vector<double>> TrajectoryPlanner::createTrajectoryFrenet(VehicleState::state currentState, VehicleState::state goalState)
   {
-    size_t n_steps_react = 5; // TODO verschieben in header
-    double dt = 0.02;
-    
-    size_t delay = min(last_trajectory_s.size(), n_steps_react);
+
+    size_t delay = 0;//min(last_trajectory_s.size(), Parameters::n_steps_react);
     
     // Copy the path for the delay
     vector<double> next_path_s(last_trajectory_s.begin(), last_trajectory_s.begin() + delay);
     vector<double> next_path_d(last_trajectory_d.begin(), last_trajectory_d.begin() + delay);
     
-    size_t n_future_steps = n_steps_react - delay;
-    double time_prediction = n_future_steps * dt;
+    size_t n_future_steps = Parameters::n_steps - delay;
+    double time_prediction = n_future_steps * Parameters::dt;
     
     vector<double> poly_s = JMT({currentState.s, currentState.s_d, currentState.s_dd}, {goalState.s, goalState.s_d, goalState.s_dd}, time_prediction);
     vector<double> poly_d = JMT({currentState.d, currentState.d_d, currentState.d_dd}, {goalState.d, goalState.d_d, goalState.d_dd}, time_prediction);
 
     double last_s = currentState.s;
     
-    for(int i = 0; i < n_future_steps; i++)
+    for(int i = 1; i < n_future_steps; i++)
     {
       
-      double s = max(evalCoefficients(poly_s, i*dt), last_s + 0.02); // TODO verbessern
-      double d = evalCoefficients(poly_d, i*dt);
+      double s = max(evalCoefficients(poly_s, i*Parameters::dt), last_s + 0.02); // TODO verbessern
+      double d = evalCoefficients(poly_d, i*Parameters::dt);
       
       next_path_s.push_back(s);
       next_path_d.push_back(d);
