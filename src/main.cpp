@@ -9,10 +9,11 @@
 
 #include <numeric>      // std::adjacent_difference
 #include <chrono>
-#include "Waypoints.h"
+#include "World.h"
 #include "TrajectoryPlanner.h"
 #include "Vehicle.h"
 #include "VehicleState.h"
+#include "BehaviorPlanner.h"
 //#include "Parameters.h"
 
 constexpr double pi() { return M_PI; }
@@ -41,7 +42,16 @@ string hasData(string s) {
   return "";
 }
 
+inline double euclidean(double dx, double dy) {
+  return sqrt(dx * dx + dy * dy);
+}
 
+inline vector<double> cartesian2polar(double vx, double vy) {
+  double speed = euclidean(vx, vy);
+  double theta = atan2(vy, vx);
+  if(theta < 0) theta += 2 * M_PI;
+  return {speed, theta};
+}
 
 void print(const vector<double> &path) {
   for (int i=0; i<path.size(); i++) {
@@ -90,13 +100,13 @@ int main() {
   // Waypoint map to read from
   string map_file_ = "/Users/Klemens/Udacity_Nano_Car/CarND-Path-Planning-Project/data/highway_map.csv";
   
-  Waypoints waypoints(map_file_);
+  World world(map_file_);
   
   TrajectoryPlanner trajplanner;
   Vehicle egovehicle;
   
-  h.onMessage([&waypoints, &trajplanner, &egovehicle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                                                      uWS::OpCode opCode) {
+  h.onMessage([&world, &trajplanner, &egovehicle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+                                                  uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -138,6 +148,22 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
           
+          map<int, Vehicle> vehicleMap;
+
+          for(auto sensorData : sensor_fusion) {
+            int idnbr = sensorData[0];
+            if(vehicleMap.find(idnbr) == vehicleMap.end()) {
+              vehicleMap[idnbr].id = 0;
+            }
+            
+            // Update other cars' states
+            vehicleMap[idnbr].setPosition(sensorData[5], sensorData[6]);
+            auto polar = cartesian2polar(sensorData[3], sensorData[4]);
+            auto other_sd_dot = world.getFrenetVelocity(vehicleMap[idnbr].state.s, vehicleMap[idnbr].state.d, polar[0], polar[1]);
+            vehicleMap[idnbr].setVelocity(other_sd_dot[0], other_sd_dot[1]);
+          }
+          
+          
           std::cout << "new cycle" << std::endl;
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
@@ -151,7 +177,7 @@ int main() {
             egovehicle.move(trajectory[0], trajectory[1], n_progressed_points);
           } else {
             // If we don't have any historical data, we fallback to default values
-            const vector<double> &frenetVelocity = waypoints.getFrenetVelocity(j[1]["s"], j[1]["d"], 0.44704 * ((double) j[1]["speed"]), deg2rad(j[1]["yaw"]));
+            const vector<double> &frenetVelocity = world.getFrenetVelocity(j[1]["s"], j[1]["d"], 0.44704 * ((double) j[1]["speed"]), deg2rad(j[1]["yaw"]));
             egovehicle.setPosition(j[1]["s"], j[1]["d"]);
             egovehicle.setVelocity(frenetVelocity[0], frenetVelocity[1]);
           }
@@ -160,15 +186,9 @@ int main() {
           
           VehicleState::state start = egovehicle.getVehicleState();
           
-          VehicleState::state goal;
-          goal.s = start.s + 22;//Parameters::velocity_max*Parameters::dt*Parameters::n_steps;
-          goal.s_d = 22;//Parameters::velocity_max;
-          goal.s_dd = 0;
-          goal.d = 6;
-          goal.d_d = 0;
-          goal.d_dd = 0;
+          VehicleState::state goal = BehaviorPlanner::createGoal(start, world);
           
-          vector<vector<double>> path = trajplanner.createTrajectoryXY(start, goal, waypoints);
+          vector<vector<double>> path = trajplanner.createTrajectoryXY(start, goal, world);
           
           cout<<egovehicle;
           

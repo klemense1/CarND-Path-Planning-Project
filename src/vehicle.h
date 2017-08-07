@@ -26,6 +26,7 @@ public:
   double d_d;
   double d_dd;*/
   VehicleState::state state;
+  int id;
   
   explicit Vehicle();
   
@@ -38,6 +39,8 @@ public:
   friend std::ostream& operator<<(std::ostream& stream, const Vehicle& matrix);
 
   VehicleState::state getVehicleState();
+  
+  VehicleState::state getVehicleStateIn(double dt);
   
   virtual ~Vehicle();
 };

@@ -14,7 +14,7 @@
 
 #include "VehicleState.h"
 #include "TrajectoryPlanner.h"
-#include "Waypoints.h"
+#include "World.h"
 #include "Parameters.h"
 
 using namespace std;
@@ -127,7 +127,7 @@ void TrajectoryPlanner::chopLastSentTrajectory(size_t prev_path_length) {
   
 }
 
-vector<vector<double>> TrajectoryPlanner::createTrajectoryXY(VehicleState::state currentState, VehicleState::state goalState, Waypoints waypoints) {
+vector<vector<double>> TrajectoryPlanner::createTrajectoryXY(VehicleState::state currentState, VehicleState::state goalState, World world) {
   
   vector<vector<double>> path = createTrajectoryFrenet(currentState, goalState);
   
@@ -138,7 +138,7 @@ vector<vector<double>> TrajectoryPlanner::createTrajectoryXY(VehicleState::state
   vector<double> next_path_y;
   
   for(int i = 0; i < getLastSentTrajectoryLength(); i++) {
-    vector<double> positionXY = waypoints.getXYspline(last_trajectory_s[i], last_trajectory_d[i]); // TODO überprüfen
+    vector<double> positionXY = world.getXYspline(last_trajectory_s[i], last_trajectory_d[i]); // TODO überprüfen
     next_path_x.push_back(positionXY[0]);
     next_path_y.push_back(positionXY[1]);
   }

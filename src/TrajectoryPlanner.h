@@ -9,7 +9,7 @@
 #ifndef TrajectoryPlanner_h
 #define TrajectoryPlanner_h
 
-#include "Waypoints.h"
+#include "World.h"
 #include "VehicleState.h"
 
 using namespace std;
@@ -24,7 +24,7 @@ private:
   double evalCoefficients(vector<double> poly, double t);
 
 public:
-  vector<vector<double>> createTrajectoryXY(VehicleState::state currentState, VehicleState::state goalState, Waypoints waypoints);
+  vector<vector<double>> createTrajectoryXY(VehicleState::state currentState, VehicleState::state goalState, World world);
   const vector<vector<double>> getLastSentTrajectory();
   int getLastSentTrajectoryLength();
   void chopLastSentTrajectory(size_t prev_path_length);

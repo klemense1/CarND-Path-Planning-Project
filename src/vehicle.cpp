@@ -64,3 +64,13 @@ void Vehicle::move(const vector<double>& path_s, const vector<double>& path_d, s
 VehicleState::state Vehicle::getVehicleState() {
   return this->state;
 }
+
+VehicleState::state Vehicle::getVehicleStateIn(double dt) {
+  
+  VehicleState::state stateIn;
+  stateIn = getVehicleState();
+  
+  stateIn.s = stateIn.s + dt * stateIn.s_d + dt*dt + stateIn.s_dd;
+  
+  return stateIn;
+}
