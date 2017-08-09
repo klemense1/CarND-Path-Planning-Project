@@ -12,9 +12,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "Eigen-3.3/Eigen/Dense"
 
-#include "VehicleState.h"
 #include "TrajectoryPlanner.h"
-#include "World.h"
 #include "Parameters.h"
 
 using namespace std;

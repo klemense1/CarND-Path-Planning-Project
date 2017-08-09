@@ -16,10 +16,10 @@
 #include <thread>
 #include <math.h>
 
-#include "utilities.h"
 #include "spline.h"
 
 #include "World.h"
+#include "utilities.h"
 
 using namespace std;
 
@@ -258,6 +258,8 @@ vector<double> World::getXYspline(double s, double d)
 
 vector<double> World::getFrenetVelocity(double s, double d, double speed, double theta) {
   // Ensure s is [0, max_s]
+  s = utilities::bound_s(s);
+  
   // Use log2(N) operations for finding the last passed waypoint
   double max_s = 5000;
   const vector<double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);

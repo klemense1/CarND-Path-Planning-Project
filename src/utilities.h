@@ -39,5 +39,16 @@ namespace utilities {
     return array;
   }
   
+  double bound_s(double s) {
+    const double max_s = 6945.554;
+    double bounded_s;
+    if (s < 0 || s > max_s) {
+      bounded_s = fmod(max_s + s, max_s);
+    }
+    else {
+      bounded_s = s;
+    };
+    return bounded_s;
+  }
 }
 #endif /* utilities_h */
