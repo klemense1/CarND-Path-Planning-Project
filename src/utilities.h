@@ -1,17 +1,9 @@
-//
-//  utilities.h
-//  Path_Planning
-//
-//  Created by Klemens on 06.08.17.
-//
-//
+// Copyright [2017] Klemens Esterle
 
-#ifndef utilities_h
-#define utilities_h
+#ifndef SRC_UTILITIES_H_
+#define SRC_UTILITIES_H_
 
 #include <vector>
-
-using namespace std;
 
 namespace utilities {
   
@@ -24,14 +16,15 @@ namespace utilities {
   /*
    from https://stackoverflow.com/questions/11734322/matlab-type-arrays-in-c
    */
-  vector<double> linspace(double a, double b, int n) {
-    vector<double> array;
-    if ((n == 0) || (n == 1) || (a == b))
+  
+  std::vector<double> linspace(double a, double b, int n) {
+    std::vector<double> array;
+    if ((n == 0) || (n == 1) || (a == b)) {
       array.push_back(b);
-    else if (n > 1) {
+    } else if (n > 1) {
       double step = (b - a) / (n - 1);
       int count = 0;
-      while(count < n) {
+      while (count < n) {
         array.push_back(a + count*step);
         ++count;
       }
@@ -44,11 +37,11 @@ namespace utilities {
     double bounded_s;
     if (s < 0 || s > max_s) {
       bounded_s = fmod(max_s + s, max_s);
-    }
-    else {
+    } else {
       bounded_s = s;
-    };
+    }
     return bounded_s;
   }
-}
-#endif /* utilities_h */
+}  // namespace utilities
+
+#endif  // SRC_UTILITIES_H_
