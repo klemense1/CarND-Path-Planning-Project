@@ -45,15 +45,17 @@ namespace BehaviorPlanner {
     double front_s_diff = 10000.0;
     int front_id = -10000;
     auto VehicleMap = world.getVehicleMap();
+    
     for (auto const &tp : VehicleMap) {
       int lane_tp = VehicleState::getLane(tp.second.state);
       int lane_ego = VehicleState::getLane(currentState);
       if (lane_tp == lane_ego) {
-        std::cout<<"found tp"<<std::endl;
-        double s_diff = bound_s_diff(currentState.s, tp.second.state.s);
-        if (s_diff < front_s_diff) {
+        double s_diff = bound_s_diff(tp.second.state.s, currentState.s);
+        if (s_diff < front_s_diff && s_diff > 0) {
+          // only consider vehicles in front
           front_s_diff = s_diff;
           front_id = tp.first;
+          // std::cout<<"found tp with front_s_diff"<<front_s_diff<<"and front_id"<<front_id<<std::endl;
         }
       };
     };
@@ -71,14 +73,19 @@ namespace BehaviorPlanner {
     travelled_distance = final_speed*horizont;
     
     int front_id = getVehicleIDInFront(currentState, world);
+    
     if (front_id > 0) {
       auto vmap = world.getVehicleMap();
+      
       Vehicle front_vehic = vmap[front_id];
+      
       VehicleState::state front_vehic_state_predicted = front_vehic.getVehicleStateIn(1);
+      
       double s_diff_predicted = bound_s_diff(front_vehic_state_predicted.s - (2 * 5), currentState.s);
+      
       if (s_diff_predicted > 0 && s_diff_predicted<travelled_distance) {
         final_speed = front_vehic_state_predicted.s_d;
-        travelled_distance = front_vehic_state_predicted.s - (2 * 5);
+        travelled_distance = s_diff_predicted;
       }
     }
     
