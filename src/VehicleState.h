@@ -17,8 +17,7 @@ namespace VehicleState {
   };
   
   inline int getLane(VehicleState::state currentState) {
-    int lane = (currentState.d / lane_width);
-    
+    int lane = (currentState.d / lane_width) + 1;
     return lane;
   }
   
