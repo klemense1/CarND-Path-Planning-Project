@@ -17,8 +17,8 @@
 //#include "Parameters.h"
 
 constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
+inline double deg2rad(double x) { return x * pi() / 180; }
+inline double rad2deg(double x) { return x * 180 / pi(); }
 
 std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
 
