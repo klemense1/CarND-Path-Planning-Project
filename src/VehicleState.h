@@ -8,8 +8,11 @@
 
 #ifndef VehicleState_h
 #define VehicleState_h
+#include <iostream>
 
 namespace VehicleState {
+  
+  const double lane_width = 4;
   
   struct state {
     double s;
@@ -19,7 +22,14 @@ namespace VehicleState {
     double d_d;
     double d_dd;
   };
-  
+
+  inline int getLane(VehicleState::state currentState) {
+    
+    int lane = (currentState.d / lane_width);
+        
+    return lane;
+  }
+
 }
 
 #endif /* VehicleState_h */

@@ -136,7 +136,7 @@ int main() {
           double end_path_d = j[1]["end_path_d"];
           
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
-          world.setCarMapData(j);
+          world.setVehicleMapData(j);
           
           
           std::cout << "new cycle" << std::endl;

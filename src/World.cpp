@@ -306,7 +306,7 @@ vector<double> World::getFrenetVelocity(double s, double d, double speed, double
   return {s_dot, d_dot};
 }
 
-void World::setCarMapData(const nlohmann::json j) {
+void World::setVehicleMapData(const nlohmann::json j) {
   auto sensor_fusion = j[1]["sensor_fusion"];
   
   for(auto sensorData : sensor_fusion) {
@@ -321,4 +321,8 @@ void World::setCarMapData(const nlohmann::json j) {
     auto other_sd_dot = getFrenetVelocity(this->vehicleMap[idnbr].state.s, this->vehicleMap[idnbr].state.d, polar[0], polar[1]);
     this->vehicleMap[idnbr].setVelocity(other_sd_dot[0], other_sd_dot[1]);
   }
+}
+
+map<int, Vehicle> World::getVehicleMap() {
+  return this->vehicleMap;
 }

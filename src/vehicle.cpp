@@ -36,7 +36,8 @@ std::ostream &operator<<(std::ostream &stream, const Vehicle &vehicle) {
   stream.precision(2);
   stream<<"Vehicle: ";
   stream<<"s("<<fixed<<vehicle.state.s<<", "<<fixed<<vehicle.state.s_d<<", "<<fixed<<vehicle.state.s_dd<<") | ";
-  stream<<"d("<<fixed<<vehicle.state.d<<", "<<fixed<<vehicle.state.d_d<<", "<<fixed<<vehicle.state.d_dd<<")";
+  stream<<"d("<<fixed<<vehicle.state.d<<", "<<fixed<<vehicle.state.d_d<<", "<<fixed<<vehicle.state.d_dd<<") | ";
+  stream<<"Lane "<<fixed<<VehicleState::getLane(vehicle.state)<<fixed<<" | ";;
   stream.precision(init_precision);
   return stream;
 }
@@ -70,7 +71,7 @@ VehicleState::state Vehicle::getVehicleStateIn(double dt) {
   VehicleState::state stateIn;
   stateIn = getVehicleState();
   
-  stateIn.s = stateIn.s + dt * stateIn.s_d + dt*dt + stateIn.s_dd;
+  stateIn.s = stateIn.s + dt * stateIn.s_d;
   
   return stateIn;
 }
