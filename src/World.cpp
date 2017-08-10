@@ -220,6 +220,6 @@ void World::setVehicleMapData(const nlohmann::json j) {
   }
 }
 
-std::map<int, Vehicle> World::getVehicleMap() {
+std::map<int, Vehicle> World::getVehicleMap() const {
   return this->vehicleMap;
 }

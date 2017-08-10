@@ -41,7 +41,7 @@ public:
   std::vector<double> getXYspline(double s, double d);
   std::vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
   void setVehicleMapData(const nlohmann::json j);
-  std::map<int, Vehicle> getVehicleMap();
+  std::map<int, Vehicle> getVehicleMap() const;
 };
 
 #endif  // SRC_WORLD_H_
