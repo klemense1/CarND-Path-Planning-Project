@@ -1,13 +1,7 @@
-//
-//  Parameter.h
-//  Path_Planning
-//
-//  Created by Klemens on 06.08.17.
-//
-//
+// Copyright [2017] Klemens Esterle
 
-#ifndef Parameter_h
-#define Parameter_h
+#ifndef SRC_PARAMETERS_H_
+#define SRC_PARAMETERS_H_
 
 namespace Parameters {
   // The max s value before wrapping around the track back to 0
@@ -20,6 +14,6 @@ namespace Parameters {
   const int n_steps = 50;
   
   size_t n_steps_react = 5;
-}
+}  // namespace Parameters
 
-#endif /* Parameter_h */
+#endif  // SRC_PARAMETERS_H_

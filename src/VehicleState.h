@@ -1,13 +1,7 @@
-//
-//  VehicleState.h
-//  Path_Planning
-//
-//  Created by Klemens on 06.08.17.
-//
-//
+// Copyright [2017] Klemens Esterle
 
-#ifndef VehicleState_h
-#define VehicleState_h
+#ifndef SRC_VEHICLESTATE_H_
+#define SRC_VEHICLESTATE_H_
 
 namespace VehicleState {
   
@@ -21,14 +15,13 @@ namespace VehicleState {
     double d_d;
     double d_dd;
   };
-
+  
   inline int getLane(VehicleState::state currentState) {
-    
     int lane = (currentState.d / lane_width);
-        
+    
     return lane;
   }
+  
+}  // namespace VehicleState
 
-}
-
-#endif /* VehicleState_h */
+#endif  // SRC_VEHICLESTATE_H_
