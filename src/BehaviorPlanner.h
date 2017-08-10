@@ -1,13 +1,8 @@
-//
-//  BehaviorPlanner.h
-//  Path_Planning
-//
-//  Created by Klemens on 07.08.17.
-//
-//
+// Copyright [2017] Klemens Esterle
 
-#ifndef BehaviorPlanner_h
-#define BehaviorPlanner_h
+#ifndef SRC_BEHAVIORPLANNER_H_
+#define SRC_BEHAVIORPLANNER_H_
+
 #include "VehicleState.h"
 #include "World.h"
 
@@ -18,30 +13,29 @@ namespace BehaviorPlanner {
   const int n_steps = 50;
   
   enum mode {keepLane, switchLeft, switchRight};
+  
   mode currentMode;
   
-  double bound_s(double s) {
+  inline double bound_s(double s) {
     double bounded_s;
     if (s < 0 || s > max_s) {
       bounded_s = fmod(BehaviorPlanner::max_s + s, BehaviorPlanner::max_s);
-    }
-    else {
+    } else {
       bounded_s = s;
-    };
+    }
     return bounded_s;
   }
   
-  inline double bound_s_diff(double s1, double s2) {
+  inline double bound_s_difference(double s1, double s2) {
     auto a = bound_s(s1);
     auto b = bound_s(s2);
     auto diff = a - b;
-    if(diff < -max_s / 2) diff += max_s;
-    if(diff > max_s / 2) diff -= max_s;
+    if (diff < -max_s / 2) diff += max_s;
+    if (diff > max_s / 2) diff -= max_s;
     return diff;
   }
   
   int getVehicleIDInFront(VehicleState::state currentState, World world) {
-    
     double front_s_diff = 10000.0;
     int front_id = -10000;
     auto VehicleMap = world.getVehicleMap();
@@ -50,15 +44,15 @@ namespace BehaviorPlanner {
       int lane_tp = VehicleState::getLane(tp.second.state);
       int lane_ego = VehicleState::getLane(currentState);
       if (lane_tp == lane_ego) {
-        double s_diff = bound_s_diff(tp.second.state.s, currentState.s);
+        double s_diff = bound_s_difference(tp.second.state.s, currentState.s);
         if (s_diff < front_s_diff && s_diff > 0) {
           // only consider vehicles in front
           front_s_diff = s_diff;
           front_id = tp.first;
           // std::cout<<"found tp with front_s_diff"<<front_s_diff<<"and front_id"<<front_id<<std::endl;
         }
-      };
-    };
+      }
+    }
     return front_id;
   }
   
@@ -81,9 +75,9 @@ namespace BehaviorPlanner {
       
       VehicleState::state front_vehic_state_predicted = front_vehic.getVehicleStateIn(1);
       
-      double s_diff_predicted = bound_s_diff(front_vehic_state_predicted.s - (2 * 5), currentState.s);
+      double s_diff_predicted = bound_s_difference(front_vehic_state_predicted.s - (2 * 5), currentState.s);
       
-      if (s_diff_predicted > 0 && s_diff_predicted<travelled_distance) {
+      if (s_diff_predicted > 0 && s_diff_predicted < travelled_distance) {
         final_speed = front_vehic_state_predicted.s_d;
         travelled_distance = s_diff_predicted;
       }
@@ -96,7 +90,7 @@ namespace BehaviorPlanner {
     goal.d_d = 0;
     goal.d_dd = 0;
     return goal;
-  };
+  }
   
   
   
@@ -111,7 +105,7 @@ namespace BehaviorPlanner {
     goal.d_dd = 0;
     
     return goal;
-  };
-};
+  }
+}  // namespace BehaviorPlanner
 
-#endif /* BehaviorPlanner_h */
+#endif  // SRC_BEHAVIORPLANNER_H_
