@@ -143,7 +143,6 @@ int main() {
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
-          
           const size_t n_progressed_points = trajplanner.getLastSentTrajectoryLength() - previous_path_x.size();
           
           if(n_progressed_points > 0) {
