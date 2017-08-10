@@ -16,12 +16,12 @@
 
 #include "utilities.h"
 
-World::World(string file_name) {
-  ifstream in_map_(file_name.c_str(), ifstream::in);
+World::World(std::string file_name) {
+  std::ifstream in_map_(file_name.c_str(), std::ifstream::in);
   
-  string line;
+  std::string line;
   while (getline(in_map_, line)) {
-    istringstream iss(line);
+    std::istringstream iss(line);
     double x;
     double y;
     float s;
@@ -44,7 +44,7 @@ inline double euclidean(double dx, double dy) {
   return sqrt(dx * dx + dy * dy);
 }
 
-inline vector<double> cartesian2polar(double vx, double vy) {
+inline std::vector<double> cartesian2polar(double vx, double vy) {
   double speed = euclidean(vx, vy);
   double theta = atan2(vy, vx);
   if (theta < 0) theta += 2 * M_PI;
@@ -55,7 +55,7 @@ double World::distance(const double x1, const double y1, const double x2, const 
   return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 
-int World::ClosestWaypoint(const double x, const double y, const vector<double> &maps_x, const vector<double> &maps_y) {
+int World::ClosestWaypoint(const double x, const double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y) {
   double closestLen = 100000;
   int closestWaypoint = 0;
   
@@ -72,7 +72,7 @@ int World::ClosestWaypoint(const double x, const double y, const vector<double> 
   return closestWaypoint;
 }
 
-int World::NextWaypoint(const double x, const double y, const double theta, const vector<double> &maps_x, const vector<double> &maps_y) {
+int World::NextWaypoint(const double x, const double y, const double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y) {
   int closestWaypoint = ClosestWaypoint(x, y, maps_x, maps_y);
   
   double map_x = maps_x[closestWaypoint];
@@ -80,7 +80,7 @@ int World::NextWaypoint(const double x, const double y, const double theta, cons
   
   double heading = atan2((map_y-y), (map_x-x));
   
-  double angle = abs(theta-heading);
+  double angle = std::abs(theta-heading);
   
   if (angle > utilities::pi()/4) {
     closestWaypoint++;
@@ -90,7 +90,7 @@ int World::NextWaypoint(const double x, const double y, const double theta, cons
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-vector<double> World::getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y) {
+std::vector<double> World::getFrenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y) {
   int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
   int prev_wp;
   prev_wp = next_wp-1;
@@ -132,7 +132,7 @@ vector<double> World::getFrenet(double x, double y, double theta, const vector<d
   return {frenet_s, frenet_d};
 }
 
-vector<double> World::getXYspline(double s, double d) {
+std::vector<double> World::getXYspline(double s, double d) {
   /*
    function returns x,y world coordinates for given spatial (frenet) coordinates and x(s) and y(s)
    */
@@ -152,18 +152,18 @@ vector<double> World::getXYspline(double s, double d) {
 }
 
 
-vector<double> World::getFrenetVelocity(double s, double d, double speed, double theta) {
+std::vector<double> World::getFrenetVelocity(double s, double d, double speed, double theta) {
   s = utilities::bound_s(s);
   
   // Use log2(N) operations for finding the last passed waypoint
   double max_s = 5000;
-  const vector<double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);
+  const std::vector<double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);
   int prev_wp = upper - map_waypoints_s.begin();
   prev_wp -= 1;
   
-  vector<double> nearest_s;
-  vector<double> nearest_x;
-  vector<double> nearest_y;
+  std::vector<double> nearest_s;
+  std::vector<double> nearest_x;
+  std::vector<double> nearest_y;
   
   for (int i = -3; i < 5; i++) {
     size_t n = map_waypoints_s.size();
@@ -220,6 +220,6 @@ void World::setVehicleMapData(const nlohmann::json j) {
   }
 }
 
-map<int, Vehicle> World::getVehicleMap() {
+std::map<int, Vehicle> World::getVehicleMap() {
   return this->vehicleMap;
 }
