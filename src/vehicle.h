@@ -1,36 +1,25 @@
-//
-//  vehicle.h
-//  Path_Planning
-//
-//  Created by Klemens on 06.08.17.
-//
-//
+// Copyright [2017] Klemens Esterle
 
-#ifndef vehicle_h
-#define vehicle_h
+#ifndef SRC_VEHICLE_H_
+#define SRC_VEHICLE_H_
 
 #include <vector>
 #include <sstream>
+#include <utility>
+
 #include "VehicleState.h"
-
-
-using namespace std;
 
 class Vehicle {
 public:
-  
-  /*double s;
-  double s_d;
-  double s_dd;
-  double d;
-  double d_d;
-  double d_dd;*/
   VehicleState::state state;
+  
   int id;
   
-  explicit Vehicle();
+  Vehicle();
   
-  void move(const vector<double>& path_s, const vector<double>& path_d, size_t steps);
+  virtual ~Vehicle();
+  
+  void move(const std::vector<double>& path_s, const std::vector<double>& path_d, size_t steps);
   
   void setVelocity(double s_dot, double d_dot);
   
@@ -41,8 +30,6 @@ public:
   VehicleState::state getVehicleState();
   
   VehicleState::state getVehicleStateIn(double dt);
-  
-  virtual ~Vehicle();
 };
 
-#endif /* vehicle_h */
+#endif  // SRC_VEHICLE_H_

@@ -15,13 +15,13 @@ class World {
 private:
   double distance(const double x1, const double y1, const double x2, const double y2);
   
-  vector<double> map_waypoints_x;
-  vector<double> map_waypoints_y;
-  vector<double> map_waypoints_s;
-  vector<double> map_waypoints_dx;
-  vector<double> map_waypoints_dy;
+  std::vector<double> map_waypoints_x;
+  std::vector<double> map_waypoints_y;
+  std::vector<double> map_waypoints_s;
+  std::vector<double> map_waypoints_dx;
+  std::vector<double> map_waypoints_dy;
   
-  map<int, Vehicle> vehicleMap;
+  std::map<int, Vehicle> vehicleMap;
   
 public:
   struct Sensordata {
@@ -34,14 +34,14 @@ public:
     float d;
   };
   
-  explicit World(string file_name);
-  int ClosestWaypoint(const double x, const double y, const vector<double> &maps_x, const vector<double> &maps_y);
-  int NextWaypoint(const double x, const double y, const double theta, const vector<double> &maps_x, const vector<double> &maps_y);
-  vector<double> getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y);
-  vector<double> getXYspline(double s, double d);
-  vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
+  explicit World(std::string file_name);
+  int ClosestWaypoint(const double x, const double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+  int NextWaypoint(const double x, const double y, const double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+  std::vector<double> getFrenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+  std::vector<double> getXYspline(double s, double d);
+  std::vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
   void setVehicleMapData(const nlohmann::json j);
-  map<int, Vehicle> getVehicleMap();
+  std::map<int, Vehicle> getVehicleMap();
 };
 
 #endif  // SRC_WORLD_H_

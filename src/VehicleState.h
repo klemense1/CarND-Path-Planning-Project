@@ -8,7 +8,6 @@
 
 #ifndef VehicleState_h
 #define VehicleState_h
-#include <iostream>
 
 namespace VehicleState {
   
