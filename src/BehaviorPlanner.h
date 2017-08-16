@@ -12,11 +12,12 @@ namespace BehaviorPlanner {
   const double max_acc = 10.;
   const double velocity_max = 21;
   const double dt = 0.02;
-  const int n_steps = 80;
+  const int n_steps = 100;
   const double dist_safety = 2*5;
   const double horizont = dt*n_steps;
   const double costs_idle = 3;
-  const double lane_width = 4;
+  const int lane_max = 3;
+  const int lane_width = 4;
   
   enum mode {keepLane, switchLeft, switchRight};
   
@@ -160,10 +161,16 @@ namespace BehaviorPlanner {
     } else {
       desired_lane = VehicleState::getLane(currentState);
     }
+    
+    desired_lane = std::max(desired_lane, 1);
+    desired_lane = std::min(desired_lane, 3);
+    
+    std::cout << "desired_lane " << desired_lane << std::endl;
+    
     return desired_lane;
   }
   
-  VehicleState::state createGoal(VehicleState::state currentState, World world) {
+  VehicleState::state createGoalInLane(VehicleState::state currentState, World world, int desired_lane) {
     VehicleState::state goal;
     
     double final_speed = std::min(BehaviorPlanner::velocity_max, currentState.s_d + BehaviorPlanner::max_acc * BehaviorPlanner::horizont);
@@ -190,29 +197,31 @@ namespace BehaviorPlanner {
     goal.s = bound_s(currentState.s + travelled_distance);
     goal.s_d = final_speed;
     goal.s_dd = 0;
-    goal.d = 0*lane_width + lane_width/2;
+    goal.d = (desired_lane-1)*BehaviorPlanner::lane_width + BehaviorPlanner::lane_width/2;
     goal.d_d = 0;
     goal.d_dd = 0;
     
-    decideMode(currentState, world);
     
     return goal;
   }
   
-  
-  
-  VehicleState::state createGoalFollowFrontVehicle(VehicleState::state currentState, World world) {
-    VehicleState::state goal;
+  std::map<int, VehicleState::state> createBestGoal(VehicleState::state currentState, World world) {
+
+    std::map<int, VehicleState::state> GoalMap;
+    int current_lane = VehicleState::getLane(currentState);
+    std::vector<int> lane_change = {0, -1, 1};
+
+    for (auto i=0; i<lane_change.size(); ++i) {
+      int new_lane = current_lane + lane_change[i];
+      if (new_lane>0 && new_lane <= BehaviorPlanner::lane_max) {
+        VehicleState::state goal_for_lane = createGoalInLane(currentState, world, new_lane);
+        GoalMap.insert(std::pair<int, VehicleState::state>(new_lane, goal_for_lane));
+      }
+    }
     
-    goal.s = bound_s(currentState.s + BehaviorPlanner::velocity_max*BehaviorPlanner::dt*BehaviorPlanner::n_steps);
-    goal.s_d = BehaviorPlanner::velocity_max;
-    goal.s_dd = 0;
-    goal.d = 6;
-    goal.d_d = 0;
-    goal.d_dd = 0;
-    
-    return goal;
+    return GoalMap;
   }
+  
   
 }  // namespace BehaviorPlanner
 

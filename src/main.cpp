@@ -160,9 +160,9 @@ int main() {
           
           VehicleState::state start = egovehicle.getVehicleState();
           
-          VehicleState::state goal = BehaviorPlanner::createGoal(start, world);
+          std::map<int, VehicleState::state> goalMap = BehaviorPlanner::createBestGoal(start, world);
           
-          vector<vector<double>> path = trajplanner.createTrajectoryXY(start, goal, world);
+          vector<vector<double>> path = trajplanner.createBestTrajectoryXY(start, goalMap, world);
           
           cout<<egovehicle;
           
