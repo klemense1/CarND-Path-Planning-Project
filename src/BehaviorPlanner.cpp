@@ -37,6 +37,29 @@ int BehaviorPlanner::getVehicleIDInFront(VehicleState::state currentState, World
   return front_id;
 }
 
+
+bool BehaviorPlanner::VehiclesBlockingLane(VehicleState::state currentState, World world, int lane) {
+  
+  bool blocked = false;
+  
+  double front_s_diff = 10000.0;
+  int front_id = -10000;
+  auto VehicleMap = world.getVehicleMap();
+  
+  for (auto const &tp : VehicleMap) {
+    int lane_tp = VehicleState::getLane(tp.second.state);
+    if (lane_tp == lane) {
+      double s_diff = bound_s_difference(tp.second.state.s, currentState.s);
+      if (std::abs(s_diff) < dist_safety) {
+        blocked = true;
+        // std::cout<<"found tp with front_s_diff"<<front_s_diff<<"and front_id"<<front_id<<std::endl;
+      }
+    }
+  }
+  return blocked;
+}
+
+
 VehicleState::state BehaviorPlanner::createGoalInLane(VehicleState::state currentState, World world, int desired_lane) {
   VehicleState::state goal;
   
@@ -44,8 +67,7 @@ VehicleState::state BehaviorPlanner::createGoalInLane(VehicleState::state curren
   double acc = (final_speed - currentState.s_d) / BehaviorPlanner::horizont;
   double travelled_distance = std::min(final_speed * horizont, currentState.s_d * BehaviorPlanner::horizont + 0.5 * acc * std::pow(BehaviorPlanner::horizont,2));
   
-  int current_lane = VehicleState::getLane(currentState);
-  int vehic_id_front = getVehicleIDInFront(currentState, world, current_lane);
+  int vehic_id_front = getVehicleIDInFront(currentState, world, desired_lane);
   
   if (vehic_id_front > 0) {
     auto vmap = world.getVehicleMap();
@@ -54,7 +76,7 @@ VehicleState::state BehaviorPlanner::createGoalInLane(VehicleState::state curren
     
     VehicleState::state front_vehic_state_predicted = front_vehic.getVehicleStateIn(horizont);
     
-    double s_diff_predicted = bound_s_difference(front_vehic_state_predicted.s - (BehaviorPlanner::dist_safety), currentState.s);
+    double s_diff_predicted = bound_s_difference(front_vehic_state_predicted.s - BehaviorPlanner::dist_safety, currentState.s);
     
     if (s_diff_predicted > 0 && s_diff_predicted < travelled_distance) {
       final_speed = front_vehic_state_predicted.s_d;
@@ -83,7 +105,9 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(VehicleState::state cu
 
   VehicleState::state bestGoal = createGoalInLane(currentState, world, _last_lane);
   TrajectoryPlanner::Path2d bestPath = this->trajplanner.createTrajectoryFrenet(currentState, bestGoal);
-  double bestCosts = costFunction(bestPath, 0);
+  //double bestCosts = costFunction(bestPath, 0);
+  double bestCosts = costFuntion(bestPath, currentState, bestGoal, world, 0);
+
   
   double lane_d = fabs(currentState.d - (getLane(currentState)-1) * BehaviorPlanner::lane_width - BehaviorPlanner::lane_width / 2);
 
@@ -102,13 +126,17 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(VehicleState::state cu
     if (new_lane>0 && new_lane <= BehaviorPlanner::lane_max) {
       VehicleState::state goal = createGoalInLane(currentState, world, new_lane);
       TrajectoryPlanner::Path2d path = this->trajplanner.createTrajectoryFrenet(currentState, goal);
-      double costs = costFunction(path, lane_change[i]);
+      //double costs = costFunction(path, lane_change[i]);
+      double costs = costFuntion(path, currentState, goal, world, lane_change[i]);
+      std::cout << "costs for lane " << new_lane << ": " << costs << " with s_d " << goal.s_d << std::endl;
+      
+
       if(costs < bestCosts) {
         bestCosts = costs;
         bestGoal = goal;
         bestPath = path;
         std::cout << "BehaviorPlanner::createBehavior: New maneuver towards lane " << new_lane << std::endl;
-        std::cout << "\t goal: s, s_d, s_dd, d, d_dd, d_dd" << goal.s << goal.s_d << goal.s_dd << goal.d << goal.d_d << goal.d_dd << std::endl;
+        std::cout << "\t goal: s, s_d, s_dd, d, d_dd, d_dd" << goal.s << " " << goal.s_d << " " << goal.s_dd << " " << goal.d << " " << goal.d_d << " " << goal.d_dd << " " << std::endl;
 
       }
     }
@@ -155,6 +183,7 @@ double BehaviorPlanner::costsVelocity(TrajectoryPlanner::Path2d Path) {
   
   for (int i = 0; i < s_d.size(); i++) {
     double vel = sqrt(s_d[i] * s_d[i] + d_d[i] * d_d[i]);
+    std::cout << "vel " << vel << std::endl;
     costs += std::abs(vel-BehaviorPlanner::velocity_max);
   }
   return costs;
@@ -162,11 +191,21 @@ double BehaviorPlanner::costsVelocity(TrajectoryPlanner::Path2d Path) {
 
 double BehaviorPlanner::costFunction(TrajectoryPlanner::Path2d Path, int lanes_changed) {
   
-  double total_costs = 0;
-  total_costs += costsVelocity(Path)/22;
-  total_costs += costsAcceleration(Path)/10;
-  total_costs += costsJerk(Path);
-  total_costs += 100 * abs(lanes_changed);
+  double costs_velocity = costsVelocity(Path);
+  double costs_acc = costsAcceleration(Path)/10;
+  double costs_jerk = costsJerk(Path);
+  double costs_lanechange = 10 * abs(lanes_changed);
+  double total_costs = costs_velocity + costs_acc + costs_jerk + costs_lanechange;
+
+  std::cout << "BehaviorPlanner::costFunction: total " << total_costs << " vel " << costs_velocity << " acc " << costs_acc << " jerk " << costs_jerk << " lanechange " << costs_lanechange << std::endl;
   
   return total_costs;
+}
+
+double BehaviorPlanner::costFuntion(TrajectoryPlanner::Path2d Path, VehicleState::state currentState, VehicleState::state goal, World world, int lanes_changed) {
+  double costs = std::abs(velocity_max - goal.s_d);
+  costs += abs(lanes_changed);
+  if (VehiclesBlockingLane(currentState, world, VehicleState::getLane(goal)))
+    costs += 1000;
+  return costs;
 }

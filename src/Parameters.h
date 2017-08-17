@@ -9,9 +9,9 @@ namespace Parameters {
   const double max_acc = 10.;
   const double velocity_max = 21;
   const double dt = 0.02;
-  const int n_steps = 100;
+  const int n_steps = 120;
   
-  size_t n_steps_react = 5;
+  //size_t n_steps_react = 5;
 }  // namespace Parameters
 
 #endif  // SRC_PARAMETERS_H_
