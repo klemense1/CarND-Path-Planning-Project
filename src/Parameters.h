@@ -10,6 +10,7 @@ namespace Parameters {
   const double velocity_max = 21;
   const double dt = 0.02;
   const int n_steps = 120;
+  const size_t n_delay = 5;
   
   //size_t n_steps_react = 5;
 }  // namespace Parameters

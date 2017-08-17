@@ -38,7 +38,7 @@ public:
   int ClosestWaypoint(const double x, const double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
   int NextWaypoint(const double x, const double y, const double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
   std::vector<double> getFrenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
-  std::vector<double> getXYspline(double s, double d);
+  std::vector<double> getXYspline(double s, double d) const;
   std::vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
   void setVehicleMapData(const nlohmann::json j);
   std::map<int, Vehicle> getVehicleMap() const;

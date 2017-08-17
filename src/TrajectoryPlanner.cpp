@@ -12,23 +12,19 @@
 
 #include "Parameters.h"
 
-TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryFrenet(VehicleState::state currentState, VehicleState::state goalState) {
-  size_t delay = 0;  //min(last_trajectory_s.size(), Parameters::n_steps_react);
+TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryFrenet(const VehicleState::state &currentState, const VehicleState::state &goalState) {
+  std::vector<double> next_path_s;
+  std::vector<double> next_path_d;
   
-  // Copy the path for the delay
-  std::vector<double> next_path_s(last_trajectory_s.begin(), last_trajectory_s.begin() + delay);
-  std::vector<double> next_path_d(last_trajectory_d.begin(), last_trajectory_d.begin() + delay);
-  
-  size_t n_future_steps = Parameters::n_steps - delay;
-  double time_prediction = n_future_steps * Parameters::dt;
+  double time_prediction = Parameters::n_steps * Parameters::dt;
   
   std::vector<double> poly_s = JMT({currentState.s, currentState.s_d, currentState.s_dd}, {goalState.s, goalState.s_d, goalState.s_dd}, time_prediction);
   std::vector<double> poly_d = JMT({currentState.d, currentState.d_d, currentState.d_dd}, {goalState.d, goalState.d_d, goalState.d_dd}, time_prediction);
   
   double last_s = currentState.s;
   
-  for (int i = 1; i < n_future_steps; i++) {
-    double s = std::max(evalCoefficients(poly_s, i*Parameters::dt), last_s + 0.02);  // TODO verbessern
+  for (int i = 1; i < Parameters::n_steps; i++) {
+    double s = std::max(evalCoefficients(poly_s, i*Parameters::dt), last_s + 0.02);
     double d = evalCoefficients(poly_d, i*Parameters::dt);
     
     next_path_s.push_back(s);
@@ -38,11 +34,31 @@ TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryFrenet(VehicleState
   return {next_path_s, next_path_d};
 }
 
+
+TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(const TrajectoryPlanner::Path2d &PathFrenet, const World &world) {
+  last_trajectory_s.clear();
+  last_trajectory_d.clear();
+  
+  last_trajectory_s = PathFrenet[0];
+  last_trajectory_d = PathFrenet[1];
+  
+  std::vector<double> next_path_x;
+  std::vector<double> next_path_y;
+  
+  for (int i = 0; i < getLastSentTrajectoryLength(); i++) {
+    std::vector<double> positionXY = world.getXYspline(last_trajectory_s[i], last_trajectory_d[i]);
+    next_path_x.push_back(positionXY[0]);
+    next_path_y.push_back(positionXY[1]);
+  }
+  
+  return {next_path_x, next_path_y};
+}
+
 double TrajectoryPlanner::evalCoefficients(std::vector<double> poly, double t) {
   return poly[0] + poly[1] * t + poly[2] * pow(t, 2) + poly[3] * pow(t, 3) + poly[4] * pow(t, 4) + poly[5] * pow(t, 5);
 }
 
-std::vector<double> TrajectoryPlanner::JMT(const std::vector< double> start, const std::vector<double> end, double T) {
+std::vector<double> TrajectoryPlanner::JMT(const std::vector< double> &start, const std::vector<double> &end, const double T) {
   /*
    Calculate the Jerk Minimizing Trajectory that connects the initial state
    to the final state in time T.
@@ -107,42 +123,4 @@ void TrajectoryPlanner::chopLastSentTrajectory(size_t prev_path_length) {
     last_trajectory_s.clear();
     last_trajectory_d.clear();
   }
-}
-
-TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(VehicleState::state currentState, VehicleState::state goalState, World world) {
-  TrajectoryPlanner::Path2d path = createTrajectoryFrenet(currentState, goalState);
-  
-  last_trajectory_s = path[0];
-  last_trajectory_d = path[1];
-  
-  std::vector<double> next_path_x;
-  std::vector<double> next_path_y;
-  
-  for (int i = 0; i < getLastSentTrajectoryLength(); i++) {
-    std::vector<double> positionXY = world.getXYspline(last_trajectory_s[i], last_trajectory_d[i]);  // TODO überprüfen
-    next_path_x.push_back(positionXY[0]);
-    next_path_y.push_back(positionXY[1]);
-  }
-  
-  return {next_path_x, next_path_y};
-}
-
-TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(TrajectoryPlanner::Path2d PathFrenet, World world) {
-
-  last_trajectory_s.clear();
-  last_trajectory_d.clear();
-  
-  last_trajectory_s = PathFrenet[0];
-  last_trajectory_d = PathFrenet[1];
-  
-  std::vector<double> next_path_x;
-  std::vector<double> next_path_y;
-  
-  for(int i = 0; i < getLastSentTrajectoryLength(); i++) {
-    std::vector<double> positionXY = world.getXYspline(last_trajectory_s[i], last_trajectory_d[i]);  // TODO überprüfen
-    next_path_x.push_back(positionXY[0]);
-    next_path_y.push_back(positionXY[1]);
-  }
-  
-  return {next_path_x, next_path_y};
 }

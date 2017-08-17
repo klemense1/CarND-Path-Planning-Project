@@ -132,7 +132,7 @@ std::vector<double> World::getFrenet(double x, double y, double theta, const std
   return {frenet_s, frenet_d};
 }
 
-std::vector<double> World::getXYspline(double s, double d) {
+std::vector<double> World::getXYspline(double s, double d) const {
   /*
    function returns x,y world coordinates for given spatial (frenet) coordinates and x(s) and y(s)
    */
