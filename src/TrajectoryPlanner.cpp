@@ -126,3 +126,23 @@ TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(VehicleState::st
   
   return {next_path_x, next_path_y};
 }
+
+TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(TrajectoryPlanner::Path2d PathFrenet, World world) {
+
+  last_trajectory_s.clear();
+  last_trajectory_d.clear();
+  
+  last_trajectory_s = PathFrenet[0];
+  last_trajectory_d = PathFrenet[1];
+  
+  std::vector<double> next_path_x;
+  std::vector<double> next_path_y;
+  
+  for(int i = 0; i < getLastSentTrajectoryLength(); i++) {
+    std::vector<double> positionXY = world.getXYspline(last_trajectory_s[i], last_trajectory_d[i]);  // TODO überprüfen
+    next_path_x.push_back(positionXY[0]);
+    next_path_y.push_back(positionXY[1]);
+  }
+  
+  return {next_path_x, next_path_y};
+}

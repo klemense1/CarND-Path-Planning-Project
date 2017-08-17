@@ -41,7 +41,8 @@ VehicleState::state BehaviorPlanner::createGoalInLane(VehicleState::state curren
   VehicleState::state goal;
   
   double final_speed = std::min(BehaviorPlanner::velocity_max, currentState.s_d + BehaviorPlanner::max_acc * BehaviorPlanner::horizont);
-  double travelled_distance = std::min(final_speed*horizont, currentState.s_d*BehaviorPlanner::horizont + 0.5*max_acc*std::pow(BehaviorPlanner::horizont,2));
+  double acc = (final_speed - currentState.s_d) / BehaviorPlanner::horizont;
+  double travelled_distance = std::min(final_speed * horizont, currentState.s_d * BehaviorPlanner::horizont + 0.5 * acc * std::pow(BehaviorPlanner::horizont,2));
   
   int current_lane = VehicleState::getLane(currentState);
   int vehic_id_front = getVehicleIDInFront(currentState, world, current_lane);
@@ -61,13 +62,19 @@ VehicleState::state BehaviorPlanner::createGoalInLane(VehicleState::state curren
     }
   }
   
+  // Calculate best target position along d
+  double target_d = (getLane(currentState)-1) * BehaviorPlanner::lane_width + BehaviorPlanner::lane_width / 2;
+  
+  if(desired_lane != getLane(currentState)) {
+    target_d = (desired_lane-1)*BehaviorPlanner::lane_width + BehaviorPlanner::lane_width/2;
+  }
+  
   goal.s = bound_s(currentState.s + travelled_distance);
   goal.s_d = final_speed;
   goal.s_dd = 0;
-  goal.d = (desired_lane-1)*BehaviorPlanner::lane_width + BehaviorPlanner::lane_width/2;
+  goal.d = target_d;
   goal.d_d = 0;
-  goal.d_dd = 0;
-  
+  goal.d_dd = 0.8 * max_acc * (currentState.d - target_d) / BehaviorPlanner::lane_width;
   
   return goal;
 }
@@ -75,38 +82,42 @@ VehicleState::state BehaviorPlanner::createGoalInLane(VehicleState::state curren
 TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(VehicleState::state currentState, World world) {
 
   VehicleState::state bestGoal = createGoalInLane(currentState, world, _last_lane);
-  TrajectoryPlanner::Path2d bestPath = this->trajplanner.createTrajectoryXY(currentState, bestGoal, world);
-  double bestCosts = costFunction(bestPath);
+  TrajectoryPlanner::Path2d bestPath = this->trajplanner.createTrajectoryFrenet(currentState, bestGoal);
+  double bestCosts = costFunction(bestPath, 0);
   
   double lane_d = fabs(currentState.d - (getLane(currentState)-1) * BehaviorPlanner::lane_width - BehaviorPlanner::lane_width / 2);
 
   if ((getLane(currentState) != _last_lane) || (lane_d > BehaviorPlanner::lane_width / 4)) {
     std::cout << "BehaviorPlanner::createBehavior: Finishing maneuver towards lane " << _last_lane << " with deviation lane_d = " << lane_d << std::endl;
-    return bestPath;
+    TrajectoryPlanner::Path2d bestPathXY = this->trajplanner.createTrajectoryXY(bestPath, world);
+    return bestPathXY;
   }
   
   std::vector<int> lane_change = {0, -1, 1};
   int current_lane = VehicleState::getLane(currentState);
 
   for (auto i=0; i<lane_change.size(); ++i) {
-    //int new_lane = current_lane + lane_change[i];
-    int new_lane = 2;
+    int new_lane = current_lane + lane_change[i];
+    //int new_lane = 2;
     if (new_lane>0 && new_lane <= BehaviorPlanner::lane_max) {
       VehicleState::state goal = createGoalInLane(currentState, world, new_lane);
-      TrajectoryPlanner::Path2d path = this->trajplanner.createTrajectoryXY(currentState, goal, world);
-      double costs = costFunction(path);
+      TrajectoryPlanner::Path2d path = this->trajplanner.createTrajectoryFrenet(currentState, goal);
+      double costs = costFunction(path, lane_change[i]);
       if(costs < bestCosts) {
-        std::cout << "BehaviorPlanner::createBehavior: New maneuver towards lane " << new_lane << std::endl;
         bestCosts = costs;
         bestGoal = goal;
         bestPath = path;
+        std::cout << "BehaviorPlanner::createBehavior: New maneuver towards lane " << new_lane << std::endl;
+        std::cout << "\t goal: s, s_d, s_dd, d, d_dd, d_dd" << goal.s << goal.s_d << goal.s_dd << goal.d << goal.d_d << goal.d_dd << std::endl;
+
       }
     }
   }
   
   _last_lane = getLane(bestGoal);
   
-  return bestPath;
+  TrajectoryPlanner::Path2d bestPathXY = this->trajplanner.createTrajectoryXY(bestPath, world);
+  return bestPathXY;
 }
 
 
@@ -149,12 +160,13 @@ double BehaviorPlanner::costsVelocity(TrajectoryPlanner::Path2d Path) {
   return costs;
 }
 
-double BehaviorPlanner::costFunction(TrajectoryPlanner::Path2d Path) {
+double BehaviorPlanner::costFunction(TrajectoryPlanner::Path2d Path, int lanes_changed) {
   
   double total_costs = 0;
   total_costs += costsVelocity(Path)/22;
   total_costs += costsAcceleration(Path)/10;
   total_costs += costsJerk(Path);
+  total_costs += 100 * abs(lanes_changed);
   
   return total_costs;
 }

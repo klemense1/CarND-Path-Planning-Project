@@ -85,7 +85,7 @@ public:
   double costsVelocity(TrajectoryPlanner::Path2d Path);
   double costsAcceleration(TrajectoryPlanner::Path2d Path);
   double costsJerk(TrajectoryPlanner::Path2d Path);
-  double costFunction(TrajectoryPlanner::Path2d Path);
+  double costFunction(TrajectoryPlanner::Path2d Path, int lanes_changed);
 
 };
 

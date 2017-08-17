@@ -29,6 +29,7 @@ public:
   const std::vector<std::vector<double>> getLastSentTrajectory();
   int getLastSentTrajectoryLength();
   void chopLastSentTrajectory(size_t prev_path_length);
+  Path2d createTrajectoryXY(TrajectoryPlanner::Path2d PathFrenet, World world);
   
 };
 
