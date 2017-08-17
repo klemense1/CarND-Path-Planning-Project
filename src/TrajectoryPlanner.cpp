@@ -12,6 +12,10 @@
 
 #include "Parameters.h"
 
+TrajectoryPlanner::TrajectoryPlanner() {}
+
+TrajectoryPlanner::~TrajectoryPlanner() {}
+
 TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryFrenet(const VehicleState::state &currentState, const VehicleState::state &goalState) {
   std::vector<double> next_path_s;
   std::vector<double> next_path_d;

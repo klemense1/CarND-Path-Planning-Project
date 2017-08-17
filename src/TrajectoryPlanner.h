@@ -23,6 +23,11 @@ private:
   double evalCoefficients(std::vector<double> poly, double t);
 
 public:
+  
+  TrajectoryPlanner();
+  
+  virtual ~TrajectoryPlanner();
+  
   typedef std::vector<std::vector<double>> Path2d;
   
   const std::vector<std::vector<double>> getLastSentTrajectory();
