@@ -91,11 +91,11 @@ int main() {
   string map_file_ = "/Users/Klemens/Udacity_Nano_Car/CarND-Path-Planning-Project/data/highway_map.csv";
   
   World world(map_file_);
+  BehaviorPlanner behaviorPlanner;
   
-  TrajectoryPlanner trajplanner;
   Vehicle egovehicle;
   
-  h.onMessage([&world, &trajplanner, &egovehicle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  h.onMessage([&world, &behaviorPlanner, &egovehicle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                                                   uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -139,14 +139,14 @@ int main() {
           world.setVehicleMapData(j);
           
           
-          std::cout << "new cycle" << std::endl;
+          std::cout << std::endl << "main: new cycle" << std::endl;
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
-          const size_t n_progressed_points = trajplanner.getLastSentTrajectoryLength() - previous_path_x.size();
+          const size_t n_progressed_points = behaviorPlanner.trajplanner.getLastSentTrajectoryLength() - previous_path_x.size();
           
           if(n_progressed_points > 0) {
-            const vector<vector<double>> trajectory = trajplanner.getLastSentTrajectory();
+            const vector<vector<double>> trajectory = behaviorPlanner.trajplanner.getLastSentTrajectory();
             // TODO move vehicle
             egovehicle.move(trajectory[0], trajectory[1], n_progressed_points);
           } else {
@@ -156,13 +156,11 @@ int main() {
             egovehicle.setVelocity(frenetVelocity[0], frenetVelocity[1]);
           }
           
-          trajplanner.chopLastSentTrajectory(previous_path_x.size());
+          behaviorPlanner.trajplanner.chopLastSentTrajectory(previous_path_x.size());
           
           VehicleState::state start = egovehicle.getVehicleState();
           
-          std::map<int, VehicleState::state> goalMap = BehaviorPlanner::createBestGoal(start, world);
-          
-          vector<vector<double>> path = trajplanner.createBestTrajectoryXY(start, goalMap, world);
+          vector<vector<double>> path = behaviorPlanner.createBehavior(start, world);
           
           cout<<egovehicle;
           

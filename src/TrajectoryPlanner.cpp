@@ -127,35 +127,6 @@ TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(VehicleState::st
   return {next_path_x, next_path_y};
 }
 
-TrajectoryPlanner::Path2d TrajectoryPlanner::createBestTrajectoryXY(VehicleState::state currentState, std::map<int, VehicleState::state> GoalMap, World world) {
-  
-  double best_costs = 1000000;
-  TrajectoryPlanner::Path2d newPath;
-  VehicleState::state newGoal;
-  
-  double lane_d = fabs(currentState.d - getLane(currentState));
-  
-  // Finish previous maneuver before new ones
-  if ((getLane(currentState) != _last_lane) || (lane_d > TrajectoryPlanner::lane_width / 4)) {
-    VehicleState::state newGoal = GoalMap[_last_lane];
-    newPath = createTrajectoryXY(currentState, newGoal, world);
-  } else {
-    for (auto& item: GoalMap) {
-      VehicleState::state goalState = item.second;
-      TrajectoryPlanner::Path2d currentPath = createTrajectoryXY(currentState, goalState, world);
-      double current_costs = TrajectoryPlanner::costFunction(currentPath);
-      std::cout << "Lane " << item.first << " with costs " << current_costs << std::endl;
-      if (item.first == 2) {
-        newPath = currentPath;
-        newGoal = goalState;
-      }
-    }
-  }
-  _last_lane = getLane(newGoal);
-  
-  return newPath;
-}
-
 std::vector<double> getFirstDerivative(std::vector<double> pts) {
   
   std::vector<double> pts_d(pts.size());
@@ -223,8 +194,8 @@ double TrajectoryPlanner::costsVelocity(TrajectoryPlanner::Path2d Path) {
 double TrajectoryPlanner::costFunction(TrajectoryPlanner::Path2d Path) {
   
   double total_costs = 0;
-  total_costs += costsVelocity(Path);
-  total_costs += costsAcceleration(Path);
+  total_costs += costsVelocity(Path)/22;
+  total_costs += costsAcceleration(Path)/10;
   total_costs += costsJerk(Path);
   
   return total_costs;
