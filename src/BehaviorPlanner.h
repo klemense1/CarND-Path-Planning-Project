@@ -45,6 +45,31 @@ private:
     return diff;
   }
   
+  inline std::vector<double> getFirstDerivative(std::vector<double> pts) {
+    
+    std::vector<double> pts_d(pts.size());
+    adjacent_difference(pts.begin(), pts.end(), pts_d.begin());
+    
+    pts_d.erase(pts_d.begin());
+    return pts_d;
+  }
+  
+  inline std::vector<double> getSecondDerivative(std::vector<double> points) {
+    
+    std::vector<double> points_d = getFirstDerivative(points);
+    std::vector<double> points_dd = getFirstDerivative(points_d);
+    
+    return points_dd;
+  }
+  
+  inline std::vector<double> getThirdDerivative(std::vector<double> points) {
+    
+    std::vector<double> points_dd = getSecondDerivative(points);
+    std::vector<double> points_ddd = getFirstDerivative(points_dd);
+    
+    return points_ddd;
+  }
+  
 public:
   int _last_lane;
   BehaviorPlanner();
@@ -57,6 +82,10 @@ public:
   VehicleState::state createGoalInLane(VehicleState::state currentState, World world, int desired_lane);
   TrajectoryPlanner::Path2d createBehavior(VehicleState::state currentState, World world);
   
+  double costsVelocity(TrajectoryPlanner::Path2d Path);
+  double costsAcceleration(TrajectoryPlanner::Path2d Path);
+  double costsJerk(TrajectoryPlanner::Path2d Path);
+  double costFunction(TrajectoryPlanner::Path2d Path);
 
 };
 

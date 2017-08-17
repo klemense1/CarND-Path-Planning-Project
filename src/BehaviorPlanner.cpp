@@ -76,7 +76,7 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(VehicleState::state cu
 
   VehicleState::state bestGoal = createGoalInLane(currentState, world, _last_lane);
   TrajectoryPlanner::Path2d bestPath = this->trajplanner.createTrajectoryXY(currentState, bestGoal, world);
-  double bestCosts = this->trajplanner.costFunction(bestPath);
+  double bestCosts = costFunction(bestPath);
   
   double lane_d = fabs(currentState.d - (getLane(currentState)-1) * BehaviorPlanner::lane_width - BehaviorPlanner::lane_width / 2);
 
@@ -94,7 +94,7 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(VehicleState::state cu
     if (new_lane>0 && new_lane <= BehaviorPlanner::lane_max) {
       VehicleState::state goal = createGoalInLane(currentState, world, new_lane);
       TrajectoryPlanner::Path2d path = this->trajplanner.createTrajectoryXY(currentState, goal, world);
-      double costs = this->trajplanner.costFunction(path);
+      double costs = costFunction(path);
       if(costs < bestCosts) {
         std::cout << "BehaviorPlanner::createBehavior: New maneuver towards lane " << new_lane << std::endl;
         bestCosts = costs;
@@ -107,4 +107,54 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(VehicleState::state cu
   _last_lane = getLane(bestGoal);
   
   return bestPath;
+}
+
+
+double BehaviorPlanner::costsJerk(TrajectoryPlanner::Path2d Path) {
+  std::vector<double> s_jerk = BehaviorPlanner::getThirdDerivative(Path[0]);
+  std::vector<double> d_jerk = BehaviorPlanner::getThirdDerivative(Path[1]);
+  
+  double costs = 0;
+  
+  for (int i = 0; i < s_jerk.size(); i++) {
+    double jerk = sqrt(s_jerk[i] * s_jerk[i] + d_jerk[i] * d_jerk[i]);
+    costs += jerk;
+  }
+  return costs;
+}
+
+double BehaviorPlanner::costsAcceleration(TrajectoryPlanner::Path2d Path) {
+  std::vector<double> s_dd = BehaviorPlanner::getSecondDerivative(Path[0]);
+  std::vector<double> d_dd = BehaviorPlanner::getSecondDerivative(Path[1]);
+  
+  double costs = 0;
+  
+  for (int i = 0; i < s_dd.size(); i++) {
+    double acc = sqrt(s_dd[i] * s_dd[i] + d_dd[i] * d_dd[i]);
+    costs += acc;
+  }
+  return costs;
+}
+
+double BehaviorPlanner::costsVelocity(TrajectoryPlanner::Path2d Path) {
+  std::vector<double> s_d = BehaviorPlanner::getFirstDerivative(Path[0]);
+  std::vector<double> d_d = BehaviorPlanner::getFirstDerivative(Path[1]);
+  
+  double costs = 0;
+  
+  for (int i = 0; i < s_d.size(); i++) {
+    double vel = sqrt(s_d[i] * s_d[i] + d_d[i] * d_d[i]);
+    costs += std::abs(vel-BehaviorPlanner::velocity_max);
+  }
+  return costs;
+}
+
+double BehaviorPlanner::costFunction(TrajectoryPlanner::Path2d Path) {
+  
+  double total_costs = 0;
+  total_costs += costsVelocity(Path)/22;
+  total_costs += costsAcceleration(Path)/10;
+  total_costs += costsJerk(Path);
+  
+  return total_costs;
 }

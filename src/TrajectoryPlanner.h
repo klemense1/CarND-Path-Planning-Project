@@ -26,13 +26,9 @@ public:
   Path2d createTrajectoryFrenet(VehicleState::state currentState, VehicleState::state goalState);
   Path2d createTrajectoryXY(VehicleState::state currentState, VehicleState::state goalState, World world);
   Path2d createBestTrajectoryXY(VehicleState::state currentState, std::map<int, VehicleState::state> GoalMap, World world);
-  double costFunction(TrajectoryPlanner::Path2d Path);
   const std::vector<std::vector<double>> getLastSentTrajectory();
   int getLastSentTrajectoryLength();
   void chopLastSentTrajectory(size_t prev_path_length);
-  double costsVelocity(TrajectoryPlanner::Path2d Path);
-  double costsAcceleration(TrajectoryPlanner::Path2d Path);
-  double costsJerk(TrajectoryPlanner::Path2d Path);
   
 };
 
