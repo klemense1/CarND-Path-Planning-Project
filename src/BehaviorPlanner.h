@@ -9,7 +9,6 @@
 #include "TrajectoryPlanner.h"
 
 class BehaviorPlanner {
-  
 private:
   const double max_s = 6945.554;
   const double max_acc = 10.;
@@ -18,13 +17,9 @@ private:
   const int n_steps = 120;
   const double dist_safety = 2*5;
   const double horizont = dt*n_steps;
-  const double costs_idle = 3;
   const int lane_max = 3;
   const int lane_width = 4;
   
-  enum mode {keepLane, switchLeft, switchRight};
-  
-  mode currentMode;
   
   inline double bound_s(double s) {
     double bounded_s;
@@ -45,49 +40,20 @@ private:
     return diff;
   }
   
-  inline std::vector<double> getFirstDerivative(std::vector<double> pts) {
-    
-    std::vector<double> pts_d(pts.size());
-    adjacent_difference(pts.begin(), pts.end(), pts_d.begin());
-    
-    pts_d.erase(pts_d.begin());
-    return pts_d;
-  }
-  
-  inline std::vector<double> getSecondDerivative(std::vector<double> points) {
-    
-    std::vector<double> points_d = getFirstDerivative(points);
-    std::vector<double> points_dd = getFirstDerivative(points_d);
-    
-    return points_dd;
-  }
-  
-  inline std::vector<double> getThirdDerivative(std::vector<double> points) {
-    
-    std::vector<double> points_dd = getSecondDerivative(points);
-    std::vector<double> points_ddd = getFirstDerivative(points_dd);
-    
-    return points_ddd;
-  }
+  bool VehiclesBlockingLane(const VehicleState::state &currentState, const World &world, int lane);
+  int getVehicleIDInFront(const VehicleState::state &currentState, const World &world, int lane);
+  VehicleState::state createGoalInLane(const VehicleState::state &currentState, const World &world, int desired_lane);
+  double costFuntion(const TrajectoryPlanner::Path2d &PathFrenet, const VehicleState::state &currentState, const VehicleState::state &goal, const World &world, const int lanes_changed);
   
 public:
   int _last_lane;
+  
   BehaviorPlanner();
   
   virtual ~BehaviorPlanner();
   
   TrajectoryPlanner trajplanner;
-  bool VehiclesBlockingLane(VehicleState::state currentState, World world, int lane);
-  int getVehicleIDInFront(VehicleState::state currentState, World world, int lane);
-  VehicleState::state createGoalInLane(VehicleState::state currentState, World world, int desired_lane);
-  TrajectoryPlanner::Path2d createBehavior(VehicleState::state currentState, World world);
-  
-  double costsVelocity(TrajectoryPlanner::Path2d Path);
-  double costsAcceleration(TrajectoryPlanner::Path2d Path);
-  double costsJerk(TrajectoryPlanner::Path2d Path);
-  double costFunction(TrajectoryPlanner::Path2d Path, int lanes_changed);
-  double costFuntion(TrajectoryPlanner::Path2d Path, VehicleState::state currentState, VehicleState::state goal, World world, int lanes_changed);
-
+  TrajectoryPlanner::Path2d createBehavior(const VehicleState::state &currentState, const World &world);
 };
 
 #endif  // SRC_BEHAVIORPLANNER_H_
