@@ -13,7 +13,6 @@ In this project your goal is to safely navigate around a virtual highway with ot
 4. Run it: `./path_planning`.
 
 
-
 ## Architecture
 
 The Library consists of the following files.
@@ -30,7 +29,7 @@ The Library consists of the following files.
 
 ## Continuity of Trajectory
 
-
+The conversion function from global to frenet is not reliable enough to allow to use the current position at each cycle and plan from there. It leads to deviations resulting in jumpy behavior. That said, an approach was chosen here that reuses the remaining trajectory from the last cycle, cuts out what has been passsed and reuses it. This allows for a smooth behavior.
 
 ## Behavior-Planning
 
@@ -45,21 +44,33 @@ After that, the new trajectory is passed to the simulator in the main-function.
 
 ### Creating possible Goals
 
-The behavior planner considers the following high-level decisions: Switching one lane to the left or right, or staying in the lane. Thus, for each of those new lanes (if they are within the street), a possible goal is calculated.
+The behavior planner considers the following high-level decisions: 
+
+- Switching one lane to the left
+
+- Switching one lane to the right
+
+- staying in the lane.
+
+Thus, for each of those new lanes (if they are within the street), a possible goal is calculated. world.getVehicleMap() provides a map with all vehicles, which is used to check wether a possible goal would collide with another car. If so, a goal is chosen to adapt to the front car and engage in a following mode.
 
 ### Trajectory Generation in Frenet System
 
-
+For each of those goals, a trajectory is created using createTrajectoryFrenet(). This function uses JMT() to create two jerk minimizing trajectories based on quintic polynoms for both lateral and longitudinal movement.
 
 ### Decision Making
 
+Based on these possible trajectories in the s-d-system, the costs are calculated in costFuntion(). It penalizes
+- deviation from the max speed, 
+- lane changes
+- if a vehicle is blocking the desired lane in order to prevent a crash
+  - VehiclesBlockingLane() checks wether a vehicle is blocking, 
 
+This could be easily extended to also penalize higher accerlation or jerk.
 
 ### Conversion from Frenet Reference System to Global Reference System
 
-
-
-
+When a desired trajectory has been chosen, this trajectory is converted from frenet to the global system, as the simulator requires it. The function createTrajectoryXY in TrajectoryPlanner uses spline.h, an open-source library for spline interpolation.
 
 
 

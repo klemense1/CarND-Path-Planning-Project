@@ -138,7 +138,6 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           world.setVehicleMapData(j);
           
-          
           std::cout << std::endl << "main: new cycle" << std::endl;
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
@@ -147,10 +146,8 @@ int main() {
           
           if(n_progressed_points > 0) {
             const vector<vector<double>> trajectory = behaviorPlanner.trajplanner.getLastSentTrajectory();
-            // TODO move vehicle
             egovehicle.move(trajectory[0], trajectory[1], n_progressed_points);
           } else {
-            // If we don't have any historical data, we fallback to default values
             const vector<double> &frenetVelocity = world.getFrenetVelocity(j[1]["s"], j[1]["d"], 0.44704 * ((double) j[1]["speed"]), deg2rad(j[1]["yaw"]));
             egovehicle.setPosition(j[1]["s"], j[1]["d"]);
             egovehicle.setVelocity(frenetVelocity[0], frenetVelocity[1]);
