@@ -51,39 +51,6 @@ void print(const vector<double> &path) {
 }
 
 
-/*
- void smooth_trajectory(const vector<double> x_points, const vector<double> y_points, vector<double> &x_new, vector<double> &y_new) {
- 
- vector<double> s_points(x_points.size());
- double angle = 0;
- for (int i=0; i<50; i++) {
- vector<double> frenet_sd;
- frenet_sd = getFrenet(x_points[i], y_points[i], angle, x_points, y_points);
- s_points[i] = frenet_sd[0];
- }
- 
- s_points[0] = 0; // this should not be necessary, there is a bug in the getFrenet function
- 
- tk::spline spline_x;
- spline_x.set_points(s_points, x_points);
- 
- tk::spline spline_y;
- spline_y.set_points(s_points, y_points);
- 
- vector<double> s_points_linear_spaced;
- s_points_linear_spaced = linspace(s_points[0], s_points[s_points.size()-1], 50);
- 
- for (int i=0; i<50; i++) {
- double s = s_points_linear_spaced[i];
- x_new.push_back(spline_x(s));
- y_new.push_back(spline_y(s));
- }
- 
- x_new[0] = x_points[0]; // reusing first point
- y_new[0] = y_points[0];
- 
- }
- */
 int main() {
   uWS::Hub h;
   

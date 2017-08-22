@@ -11,6 +11,7 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <assert.h>     /* assert */
 
 #include "spline.h"
 
@@ -102,6 +103,8 @@ std::vector<double> World::getFrenet(double x, double y, double theta, const std
   double n_y = maps_y[next_wp]-maps_y[prev_wp];
   double x_x = x - maps_x[prev_wp];
   double x_y = y - maps_y[prev_wp];
+  
+  assert ((n_x*n_x+n_y*n_y)!=0);
   
   // find the projection of x onto n
   double proj_norm = (x_x*n_x+x_y*n_y)/(n_x*n_x+n_y*n_y);
