@@ -16,18 +16,18 @@ TrajectoryPlanner::TrajectoryPlanner() {}
 
 TrajectoryPlanner::~TrajectoryPlanner() {}
 
-TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryFrenet(const VehicleState::state &currentState, const VehicleState::state &goalState) {
+TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryFrenet(const VehicleState::state &currentState, const VehicleState::state &goalState, size_t n_maneuver) {
   std::vector<double> next_path_s;
   std::vector<double> next_path_d;
   
-  double time_prediction = Parameters::n_steps * Parameters::dt;
+  double time_prediction = n_maneuver * Parameters::dt;
   
   std::vector<double> poly_s = JMT({currentState.s, currentState.s_d, currentState.s_dd}, {goalState.s, goalState.s_d, goalState.s_dd}, time_prediction);
   std::vector<double> poly_d = JMT({currentState.d, currentState.d_d, currentState.d_dd}, {goalState.d, goalState.d_d, goalState.d_dd}, time_prediction);
   
   double last_s = currentState.s;
   
-  for (int i = 1; i < Parameters::n_steps; i++) {
+  for (int i = 1; i < n_maneuver; i++) {
     double s = std::max(evalCoefficients(poly_s, i*Parameters::dt), last_s + 0.02);
     double d = evalCoefficients(poly_d, i*Parameters::dt);
     
@@ -113,17 +113,23 @@ const TrajectoryPlanner::Path2d TrajectoryPlanner::getLastSentTrajectory() {
   return {last_trajectory_s, last_trajectory_d};
 }
 
-int TrajectoryPlanner::getLastSentTrajectoryLength() {
+size_t TrajectoryPlanner::getLastSentTrajectoryLength() {
   return last_trajectory_s.size();
 }
 
 void TrajectoryPlanner::chopLastSentTrajectory(size_t prev_path_length) {
+  /* prev_path_length  ... length of previous list but with processed points removed (show 
+                           how far along the path has processed since last time)
+   */
+
   size_t n_processed_steps = last_trajectory_s.size() - prev_path_length;
   
   if (prev_path_length > 0 && n_processed_steps > 0) {
+    // some part of trajectory has been used
     last_trajectory_s.erase(last_trajectory_s.begin(), last_trajectory_s.begin() + n_processed_steps);
     last_trajectory_d.erase(last_trajectory_d.begin(), last_trajectory_d.begin() + n_processed_steps);
   } else if (prev_path_length == 0) {
+    // no trajectory came back, all of last trajectory has been driven
     last_trajectory_s.clear();
     last_trajectory_d.clear();
   }

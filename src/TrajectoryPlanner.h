@@ -12,10 +12,10 @@
 
 class TrajectoryPlanner {
 private:
-  const double max_acc = 10.;
+  /*const double max_acc = 10.;
   const double velocity_max = 21;
   const int lane_width = 4;
-  
+  */
   std::vector<double> last_trajectory_s;
   std::vector<double> last_trajectory_d;
   
@@ -31,10 +31,10 @@ public:
   typedef std::vector<std::vector<double>> Path2d;
   
   const std::vector<std::vector<double>> getLastSentTrajectory();
-  int getLastSentTrajectoryLength();
+  size_t getLastSentTrajectoryLength();
   void chopLastSentTrajectory(size_t prev_path_length);
   
-  Path2d createTrajectoryFrenet(const VehicleState::state &currentState, const VehicleState::state &goalState);
+  Path2d createTrajectoryFrenet(const VehicleState::state &currentState, const VehicleState::state &goalState, size_t n_maneuver);
   Path2d createTrajectoryXY(const TrajectoryPlanner::Path2d &PathFrenet, const World &world);
   
 };

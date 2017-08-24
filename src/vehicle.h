@@ -16,6 +16,7 @@ public:
   int id;
   
   Vehicle();
+  Vehicle(const VehicleState::state &initialState);
   
   virtual ~Vehicle();
   

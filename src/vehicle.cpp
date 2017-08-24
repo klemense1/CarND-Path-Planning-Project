@@ -5,6 +5,8 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <assert.h>     /* assert */
+
 
 Vehicle::Vehicle() {
   this->state.s = 0;
@@ -14,6 +16,16 @@ Vehicle::Vehicle() {
   this->state.d_d = 0;
   this->state.d_dd = 0;
 }
+
+Vehicle::Vehicle(const VehicleState::state &initialState) {
+  this->state.s = initialState.s;
+  this->state.s_d = initialState.s_d;
+  this->state.s_dd = initialState.s_dd;
+  this->state.d = initialState.d;
+  this->state.d_d = initialState.d_d;
+  this->state.d_dd = initialState.d_dd;
+}
+
 
 Vehicle::~Vehicle() {}
 
@@ -39,7 +51,9 @@ std::ostream &operator<<(std::ostream &stream, const Vehicle &vehicle) {
 }
 
 void Vehicle::move(const std::vector<double>& path_s, const std::vector<double>& path_d, size_t steps) {
-  int idx = steps - 1;
+  assert (steps>0);
+  
+  int idx = std::min(steps, path_s.size()) - 1;
   double dt = 0.02;
   if (idx > 0) {
     double s_d = (path_s[idx] - path_s[idx - 1]) / dt;

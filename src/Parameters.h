@@ -6,11 +6,11 @@
 namespace Parameters {
   // The max s value before wrapping around the track back to 0
   const double max_s = 6945.554;
-  const double max_acc = 10.;
+  const double max_acc = 5.;
   const double velocity_max = 21;
   const double dt = 0.02;
   const int n_steps = 120;
-  const size_t n_delay = 5;
+  //const size_t n_delay = 5;
   
   //size_t n_steps_react = 5;
 }  // namespace Parameters

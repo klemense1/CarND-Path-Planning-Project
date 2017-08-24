@@ -110,7 +110,7 @@ double BehaviorPlanner::costFuntion(const TrajectoryPlanner::Path2d &PathFrenet,
 
 TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(const VehicleState::state &currentState, const World &world) {
   VehicleState::state newGoal = createGoalInLane(currentState, world, _last_lane);
-  TrajectoryPlanner::Path2d newPathFrenet = this->trajplanner.createTrajectoryFrenet(currentState, newGoal);
+  TrajectoryPlanner::Path2d newPathFrenet = this->trajplanner.createTrajectoryFrenet(currentState, newGoal, BehaviorPlanner::n_steps);
   double newCosts = costFuntion(newPathFrenet, currentState, newGoal, world, 0);
   
   double lane_d = fabs(currentState.d - (getLane(currentState)-1) * BehaviorPlanner::lane_width - BehaviorPlanner::lane_width / 2);
@@ -128,7 +128,7 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(const VehicleState::st
     int new_lane = current_lane + lane_change[i];
     if (new_lane>0 && new_lane <= BehaviorPlanner::lane_max) {
       VehicleState::state goal = createGoalInLane(currentState, world, new_lane);
-      TrajectoryPlanner::Path2d pathFrenet = this->trajplanner.createTrajectoryFrenet(currentState, goal);
+      TrajectoryPlanner::Path2d pathFrenet = createTrajectory(currentState, goal, world);
       double costs = costFuntion(pathFrenet, currentState, goal, world, lane_change[i]);
       std::cout << "costs for lane " << new_lane << ": " << costs << " with s_d " << goal.s_d << std::endl;
       
@@ -146,4 +146,49 @@ TrajectoryPlanner::Path2d BehaviorPlanner::createBehavior(const VehicleState::st
   
   TrajectoryPlanner::Path2d newPathXY = this->trajplanner.createTrajectoryXY(newPathFrenet, world);
   return newPathXY;
+}
+
+TrajectoryPlanner::Path2d BehaviorPlanner::createTrajectory(const VehicleState::state &currentState, const VehicleState::state &goal, const World &world) {
+  
+  TrajectoryPlanner::Path2d completeTrajectory = createFirstTrajectorySegment(currentState, world);
+  
+  size_t n_steps_for_maneuver = BehaviorPlanner::n_steps - completeTrajectory[0].size();
+  
+  VehicleState::state startState;
+  
+  if(!completeTrajectory[0].empty()) {
+    Vehicle vehic(currentState);
+    vehic.move(completeTrajectory[0], completeTrajectory[1], completeTrajectory[0].size());
+    startState = vehic.state;
+  }
+  else {
+    startState = currentState;
+  }
+  
+  TrajectoryPlanner::Path2d rearTrajectorySegment = this->trajplanner.createTrajectoryFrenet(startState, goal, n_steps_for_maneuver);
+  
+  for (size_t i = 1; i <= n_steps_for_maneuver; i++) {
+    Vehicle vehic(startState);
+    vehic.move(rearTrajectorySegment[0], rearTrajectorySegment[1], i);
+    completeTrajectory[0].emplace_back(vehic.state.s);
+    completeTrajectory[1].emplace_back(vehic.state.d);
+  }
+  return completeTrajectory;
+}
+
+TrajectoryPlanner::Path2d BehaviorPlanner::createFirstTrajectorySegment(const VehicleState::state &currentState, const World &world) {
+  
+  TrajectoryPlanner::Path2d lastTrajectory = this->trajplanner.getLastSentTrajectory();
+  size_t n_delay = std::min(this->trajplanner.getLastSentTrajectoryLength(), BehaviorPlanner::n_delay);
+  
+  TrajectoryPlanner::Path2d firstTrajectorySegment(2);
+  
+  for (size_t i = 1; i <= n_delay; i++) {
+    Vehicle vehic(currentState);
+    vehic.move(lastTrajectory[0], lastTrajectory[1], i);
+    firstTrajectorySegment[0].emplace_back(vehic.state.s);
+    firstTrajectorySegment[1].emplace_back(vehic.state.d);
+  }
+  
+  return firstTrajectorySegment;
 }
