@@ -15,7 +15,7 @@ private:
   const double velocity_max = 21;
   const double dt = 0.02;
   const int n_steps = 120;
-  const double dist_safety = 2*5;
+  const double dist_safety = 4*5;
   const double horizont = dt*n_steps;
   const int lane_max = 3;
   const int lane_width = 4;

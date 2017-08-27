@@ -8,7 +8,6 @@
 
 #include "TrajectoryPlanner.h"
 
-
 BehaviorPlanner::BehaviorPlanner() {
   _last_lane = 2;
 }

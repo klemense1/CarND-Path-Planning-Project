@@ -42,7 +42,7 @@ World::World(std::string file_name) {
     map_waypoints_dy.push_back(d_y);
   }
   
-  _initphase = true;
+  _initphase = false;
 }
 
 inline double euclidean(double dx, double dy) {
@@ -139,28 +139,9 @@ std::vector<double> World::getFrenet(double x, double y, double theta, const std
   return {frenet_s, frenet_d};
 }
 
-/*std::vector<double> World::getXY(double s, double d) const {
-  //
-  // function returns x,y world coordinates for given spatial (frenet) coordinates and x(s) and y(s)
-  //
-  tk::spline spline_x;
-  spline_x.set_points(map_waypoints_s, map_waypoints_x);
-  
-  tk::spline spline_y;
-  spline_y.set_points(map_waypoints_s, map_waypoints_y);
-  
-  double heading = atan2(spline_y.deriv(1, s), spline_x.deriv(1, s));
-  double perp_heading = heading-utilities::pi()/2;
-  
-  double x = spline_x(s) + d*cos(perp_heading);
-  double y = spline_y(s) + d*sin(perp_heading);
-  
-  return {x,y};
-}
-*/
 
 std::vector<double> World::getXY(double s, double d) const {
-  if (_initphase) {
+/*  if (_initphase) {
     tk::spline spline_x;
     spline_x.set_points(map_waypoints_s, map_waypoints_x);
     
@@ -175,10 +156,10 @@ std::vector<double> World::getXY(double s, double d) const {
     
     return {x,y};
   }
-  else {
+  else {*/
     std::vector<tk::spline> splinesxy = getXYsplines(s, d);
     return {splinesxy[0](s), splinesxy[1](s)};
-  }
+//  }
 }
 
 std::vector<double> World::getFrenetVelocity(double s, double d, double speed, double theta) {
