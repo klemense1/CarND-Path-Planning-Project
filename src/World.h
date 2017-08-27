@@ -8,6 +8,8 @@
 #include <string>
 #include "json.hpp"
 
+#include "spline.h"
+
 #include "Vehicle.h"
 
 
@@ -24,6 +26,7 @@ private:
   std::map<int, Vehicle> vehicleMap;
   
 public:
+  bool _initphase;
   struct Sensordata {
     int id;
     float x;
@@ -38,10 +41,11 @@ public:
   int ClosestWaypoint(const double x, const double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
   int NextWaypoint(const double x, const double y, const double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
   std::vector<double> getFrenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
-  std::vector<double> getXYspline(double s, double d) const;
+  std::vector<double> getXY(double s, double d) const;
   std::vector<double> getFrenetVelocity(double s, double d, double speed, double theta);
   void setVehicleMapData(const nlohmann::json j);
   std::map<int, Vehicle> getVehicleMap() const;
+  std::vector<tk::spline> getXYsplines(double s, double d) const;
 };
 
 #endif  // SRC_WORLD_H_

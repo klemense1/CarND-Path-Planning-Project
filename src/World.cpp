@@ -17,6 +17,7 @@
 #include "spline.h"
 
 #include "utilities.h"
+#include "Parameters.h"
 
 World::World(std::string file_name) {
   std::ifstream in_map_(file_name.c_str(), std::ifstream::in);
@@ -40,6 +41,8 @@ World::World(std::string file_name) {
     map_waypoints_dx.push_back(d_x);
     map_waypoints_dy.push_back(d_y);
   }
+  
+  _initphase = true;
 }
 
 inline double euclidean(double dx, double dy) {
@@ -135,8 +138,8 @@ std::vector<double> World::getFrenet(double x, double y, double theta, const std
   
   return {frenet_s, frenet_d};
 }
-/*
-std::vector<double> World::getXYspline(double s, double d) const {
+
+/*std::vector<double> World::getXY(double s, double d) const {
   //
   // function returns x,y world coordinates for given spatial (frenet) coordinates and x(s) and y(s)
   //
@@ -155,14 +158,54 @@ std::vector<double> World::getXYspline(double s, double d) const {
   return {x,y};
 }
 */
-std::vector<double> World::getXYspline(double s, double d) const {
-  // Ensure s is [0, max_s]
-  const double max_s = 6945.554;
 
+std::vector<double> World::getXY(double s, double d) const {
+  if (_initphase) {
+    tk::spline spline_x;
+    spline_x.set_points(map_waypoints_s, map_waypoints_x);
+    
+    tk::spline spline_y;
+    spline_y.set_points(map_waypoints_s, map_waypoints_y);
+    
+    double heading = atan2(spline_y.deriv(1, s), spline_x.deriv(1, s));
+    double perp_heading = heading-utilities::pi()/2;
+    
+    double x = spline_x(s) + d*cos(perp_heading);
+    double y = spline_y(s) + d*sin(perp_heading);
+    
+    return {x,y};
+  }
+  else {
+    std::vector<tk::spline> splinesxy = getXYsplines(s, d);
+    return {splinesxy[0](s), splinesxy[1](s)};
+  }
+}
+
+std::vector<double> World::getFrenetVelocity(double s, double d, double speed, double theta) {
+
+  std::vector<tk::spline> splinesxy = getXYsplines(s, d);
+  
+  double x = splinesxy[0](s);
+  double y = splinesxy[1](s);
+  double x2 = splinesxy[0](s + 1);
+  double y2 = splinesxy[1](s + 1);
+  
+  double road_angle = atan2(y2 - y, x2 - x);
+  if (road_angle < 0) {
+    road_angle += 2 * M_PI;
+  }
+  double diff = theta - road_angle;
+  
+  double s_dot = fabs(speed * cos(diff));
+  double d_dot = speed * sin(diff);
+  
+  return {s_dot, d_dot};
+}
+
+
+std::vector<tk::spline> World::getXYsplines(double s, double d) const {
   s = utilities::bound_s(s);
   using std::vector;
-  // Use log2(N) operations for finding the last passed waypoint
-  //const vector<double>::iterator &upper = std::upper_bound(maps_s.begin(), maps_s.end(), s);
   const vector<const double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);
   long prev_wp = upper - map_waypoints_s.begin();
   prev_wp -= 1;
@@ -179,11 +222,11 @@ std::vector<double> World::getXYspline(double s, double d) const {
     // Correct for circuit coordinates
     double temp_s = map_waypoints_s[wp];
     if(prev_wp + i < 0) {
-      temp_s -= max_s;
+      temp_s -= Parameters::max_s;
     } else if(prev_wp + i >= n) {
-      temp_s += max_s;
+      temp_s += Parameters::max_s;
     }
-
+    
     nearest_s.push_back(temp_s);
   }
   
@@ -193,59 +236,9 @@ std::vector<double> World::getXYspline(double s, double d) const {
   curve_x.set_points(nearest_s, nearest_x);
   curve_y.set_points(nearest_s, nearest_y);
   
-  return {curve_x(s), curve_y(s)};
+  return {curve_x, curve_y};
 }
 
-std::vector<double> World::getFrenetVelocity(double s, double d, double speed, double theta) {
-  s = utilities::bound_s(s);
-  
-  // Use log2(N) operations for finding the last passed waypoint
-  double max_s = 5000;
-  const std::vector<double>::iterator &upper = std::upper_bound(map_waypoints_s.begin(), map_waypoints_s.end(), s);
-  int prev_wp = upper - map_waypoints_s.begin();
-  prev_wp -= 1;
-  
-  std::vector<double> nearest_s;
-  std::vector<double> nearest_x;
-  std::vector<double> nearest_y;
-  
-  for (int i = -3; i < 5; i++) {
-    size_t n = map_waypoints_s.size();
-    size_t wp = (n + prev_wp + i) % n;
-    nearest_x.push_back(map_waypoints_x[wp] + d * map_waypoints_dx[wp]);
-    nearest_y.push_back(map_waypoints_y[wp] + d * map_waypoints_dy[wp]);
-    // Correct for circuit coordinates
-    double temp_s = map_waypoints_s[wp];
-    if (prev_wp + i < 0) {
-      temp_s -= max_s;
-    } else if (prev_wp + i >= n) {
-      temp_s += max_s;
-    }
-    nearest_s.push_back(temp_s);
-  }
-  
-  // Get the curve from the nearest 6 waypoints
-  tk::spline curve_x;
-  tk::spline curve_y;
-  curve_x.set_points(nearest_s, nearest_x);
-  curve_y.set_points(nearest_s, nearest_y);
-  
-  double x = curve_x(s);
-  double y = curve_y(s);
-  double x2 = curve_x(s + 1);
-  double y2 = curve_y(s + 1);
-  
-  double road_angle = atan2(y2 - y, x2 - x);
-  if (road_angle < 0) {
-    road_angle += 2 * M_PI;
-  }
-  double diff = theta - road_angle;
-  
-  double s_dot = fabs(speed * cos(diff));
-  double d_dot = speed * sin(diff);
-  
-  return {s_dot, d_dot};
-}
 
 void World::setVehicleMapData(const nlohmann::json j) {
   auto sensor_fusion = j[1]["sensor_fusion"];

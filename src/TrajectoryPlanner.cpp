@@ -50,7 +50,7 @@ TrajectoryPlanner::Path2d TrajectoryPlanner::createTrajectoryXY(const Trajectory
   std::vector<double> next_path_y;
   
   for (int i = 0; i < getLastSentTrajectoryLength(); i++) {
-    std::vector<double> positionXY = world.getXYspline(last_trajectory_s[i], last_trajectory_d[i]);
+    std::vector<double> positionXY = world.getXY(last_trajectory_s[i], last_trajectory_d[i]);
     next_path_x.push_back(positionXY[0]);
     next_path_y.push_back(positionXY[1]);
   }

@@ -61,8 +61,9 @@ int main() {
   BehaviorPlanner behaviorPlanner;
   
   Vehicle egovehicle;
+  int n_cycle = 0;
   
-  h.onMessage([&world, &behaviorPlanner, &egovehicle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  h.onMessage([&world, &behaviorPlanner, &egovehicle, &n_cycle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                                                   uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -105,7 +106,11 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           world.setVehicleMapData(j);
           
-          std::cout << std::endl << "main: new cycle" << std::endl;
+          n_cycle++;
+          if (n_cycle > 20)
+            world._initphase = false;
+          
+          std::cout << std::endl << "main: new cycle " << n_cycle << std::endl;
           
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           
